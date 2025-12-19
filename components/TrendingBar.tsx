@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -19,11 +19,16 @@ const buildRepeatedArticles = (articles: TrendingArticle[]) => {
     return [];
   }
 
-  if (articles.length === 1) {
-    return [...articles, ...articles, ...articles];
+  const minimumLoopItems = 12;
+  const baseRepeat = Math.max(2, Math.ceil(minimumLoopItems / articles.length));
+  const repeatCount = baseRepeat % 2 === 0 ? baseRepeat : baseRepeat + 1;
+
+  const repeated: TrendingArticle[] = [];
+  for (let index = 0; index < repeatCount; index += 1) {
+    repeated.push(...articles);
   }
 
-  return [...articles, ...articles];
+  return repeated;
 };
 
 export const TrendingBar: React.FC = () => {
@@ -31,7 +36,6 @@ export const TrendingBar: React.FC = () => {
     limit: 5,
   });
   const { trackEvent } = useEngagementTracker();
-  const location = useLocation();
 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
@@ -130,9 +134,7 @@ export const TrendingBar: React.FC = () => {
     [articles]
   );
 
-  const marqueeDuration = 30;
-  const isHomeRoute = location.pathname === "/";
-  const shouldAnimate = !prefersReducedMotion && !isHomeRoute;
+  const marqueeDuration = 18;
 
   const renderSkeleton = () => (
     <div className="flex items-center gap-4 md:gap-6">
@@ -155,8 +157,8 @@ export const TrendingBar: React.FC = () => {
     </div>
   );
 
-  const renderTopics = () => {
-    if (!shouldAnimate) {
+  const renderAnimatedTopics = () => {
+    if (prefersReducedMotion) {
       return (
         <div className="flex items-center gap-4 md:gap-6" role="list">
           {articles.map((article, index) => (
@@ -232,7 +234,7 @@ export const TrendingBar: React.FC = () => {
   } else if (articles.length === 0) {
     content = renderFallback("No hay noticias internas publicadas por ahora.");
   } else {
-    content = renderTopics();
+    content = renderAnimatedTopics();
   }
 
   return (

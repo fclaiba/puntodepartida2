@@ -21,23 +21,22 @@ Esta guía detalla los pasos para poner tu aplicación en producción, conectand
    - El comando anterior te mostrará una URL en la consola.
    - O ve a tu [Dashboard de Convex](https://dashboard.convex.dev), selecciona tu proyecto, y ve a **Settings** -> **URL and Deploy Key**.
    - Copia la **Deployment URL**. Se verá algo como: `https://happy-otter-123.convex.cloud`.
+1.  **Desplegar a Producción**:
+    Abre una terminal en tu proyecto y ejecuta:
+    ```bash
+    npx convex deploy
+    ```
+    *Esto subirá tu base de datos y funciones a los servidores de Convex.*
+
+2.  **Obtener la URL de Producción**:
+    -   El comando anterior te mostrará una URL en la consola.
+    -   O ve a tu [Dashboard de Convex](https://dashboard.convex.dev), selecciona tu proyecto, y ve a **Settings** -> **URL and Deploy Key**.
+    -   Copia la **Deployment URL**. Se verá algo como: `https://happy-otter-123.convex.cloud`.
 
 ---
 
 ## Parte 2: Preparar el Frontend (Para Hostinger)
 
-1. **Configurar la URL**:
-   - Crea un archivo llamado `.env.production` en la carpeta raíz de tu proyecto (junto al `package.json`).
-   - Agrega la siguiente línea (reemplaza con TU url copiada en el paso anterior):
-     ```env
-     VITE_CONVEX_URL=https://tu-url-de-produccion.convex.cloud
-     ```
-
-2. **Generar los Archivos Web (Build)**:
-   En la terminal, ejecuta:
-   ```bash
-   npm run build
-   ```
    *Esto creará una carpeta llamada `dist` en tu proyecto. Esta carpeta contiene tu página web lista para subir.*
 
 ---

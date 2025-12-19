@@ -1,76 +1,83 @@
-import React, { useState } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '../convex/_generated/api';
-import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
+import { motion } from "motion/react";
+import { Link, useLocation } from "react-router-dom";
 
 export const NewsTicker: React.FC = () => {
-    // 1. Fetch latest articles (limited to 5)
-    const latestArticles = useQuery(api.articles.getPublic, { limit: 5 });
+  const latestArticles = useQuery(api.articles.getPublic, { limit: 5 });
+  const location = useLocation();
 
-    // 2. State for Date (static is fine, no need for seconds interval anymore)
-    const [date] = useState(new Date());
+  const isHomeRoute = location.pathname === "/";
+  const [date] = useState(new Date());
 
-    // 3. Format Date
-    const formattedDate = date.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
-    // Capitalize first letter
-    const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  const formattedDate = date.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const capitalizedDate =
+    formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
-    // 4. Loading state / Logic
-    if (!latestArticles || latestArticles.length === 0) {
-        return null;
-    }
+  const hasArticles =
+    Array.isArray(latestArticles) && latestArticles.length > 0;
 
-    const tickerItems = [...latestArticles, ...latestArticles, ...latestArticles];
+  if (!hasArticles && !isHomeRoute) {
+    return null;
+  }
 
-    return (
-        <div className="bg-[var(--color-brand-primary)] text-white overflow-hidden py-1.5 relative z-50 border-b border-white/10">
-            <div className="container mx-auto px-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
+  const tickerItems = hasArticles
+    ? [...latestArticles, ...latestArticles, ...latestArticles]
+    : [];
 
-                {/* Date */}
-                <div className="order-1 md:order-2 flex items-center gap-2 justify-end text-[11px] sm:text-xs font-medium tracking-wide uppercase text-white/80 w-full md:w-auto md:pl-4 md:border-l md:border-white/20">
-                    <span className="leading-tight text-right md:whitespace-nowrap">
-                        {capitalizedDate}
-                    </span>
-                </div>
-
-                {/* Scrolling Ticker Section */}
-                <div className="order-2 md:order-1 flex-1 overflow-hidden relative mask-linear-gradient w-full">
-                    <motion.div
-                        className="flex whitespace-nowrap gap-8"
-                        animate={{ x: [0, -1000] }}
-                        transition={{
-                            x: {
-                                repeat: Infinity,
-                                repeatType: "loop",
-                                duration: 30,
-                                ease: "linear",
-                            },
-                        }}
-                        style={{ width: 'max-content' }}
-                    >
-                        {tickerItems.map((article, index) => {
-                            if (!article) return null;
-                            return (
-                                <Link
-                                    key={`${article._id}-${index}`}
-                                    to={`/noticias/${article.section}/${article._id}`}
-                                    className="text-xs md:text-sm font-light hover:underline flex items-center gap-2 opacity-90 hover:opacity-100"
-                                >
-                                    <span className="w-1 h-1 rounded-full bg-[var(--color-brand-secondary)] inline-block" />
-                                    {article.title}
-                                </Link>
-                            );
-                        })}
-                    </motion.div>
-                </div>
-
-            </div>
+  return (
+    <div className="bg-[var(--color-brand-primary)] text-white overflow-hidden py-1.5 relative z-50 border-b border-white/10">
+      <div className="container mx-auto px-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
+        <div className="order-1 md:order-2 flex items-center gap-2 justify-end text-[11px] sm:text-xs font-medium tracking-wide uppercase text-white/80 w-full md:w-auto md:pl-4 md:border-l md:border-white/20">
+          <span className="leading-tight text-right md:whitespace-nowrap">
+            {capitalizedDate}
+          </span>
         </div>
-    );
+
+        {hasArticles && !isHomeRoute ? (
+          <div className="order-2 md:order-1 flex-1 overflow-hidden relative mask-linear-gradient w-full">
+            <motion.div
+              className="flex whitespace-nowrap gap-8"
+              animate={{ x: [0, -1000] }}
+              transition={{
+                x: {
+                  repeat: Infinity,
+                  repeatType: "loop",
+                  duration: 30,
+                  ease: "linear",
+                },
+              }}
+              style={{ width: "max-content" }}
+            >
+              {tickerItems.map((article, index) => {
+                if (!article) return null;
+                return (
+                  <Link
+                    key={`${article._id}-${index}`}
+                    to={`/noticias/${article.section}/${article._id}`}
+                    className="text-xs md:text-sm font-light hover:underline flex items-center gap-2 opacity-90 hover:opacity-100"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-[var(--color-brand-secondary)] inline-block" />
+                    {article.title}
+                  </Link>
+                );
+              })}
+            </motion.div>
+          </div>
+        ) : (
+          <div
+            className="order-2 md:order-1 flex-1 w-full"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+    </div>
+  );
 };
+
