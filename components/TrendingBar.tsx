@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -31,6 +31,7 @@ export const TrendingBar: React.FC = () => {
     limit: 5,
   });
   const { trackEvent } = useEngagementTracker();
+  const location = useLocation();
 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
@@ -129,13 +130,9 @@ export const TrendingBar: React.FC = () => {
     [articles]
   );
 
-  const marqueeDuration = useMemo(() => {
-    if (repeatedArticles.length === 0) {
-      return 18;
-    }
-
-    return Math.max(16, repeatedArticles.length * 4);
-  }, [repeatedArticles.length]);
+  const marqueeDuration = 30;
+  const isHomeRoute = location.pathname === "/";
+  const shouldAnimate = !prefersReducedMotion && !isHomeRoute;
 
   const renderSkeleton = () => (
     <div className="flex items-center gap-4 md:gap-6">
@@ -158,8 +155,8 @@ export const TrendingBar: React.FC = () => {
     </div>
   );
 
-  const renderAnimatedTopics = () => {
-    if (prefersReducedMotion) {
+  const renderTopics = () => {
+    if (!shouldAnimate) {
       return (
         <div className="flex items-center gap-4 md:gap-6" role="list">
           {articles.map((article, index) => (
@@ -235,7 +232,7 @@ export const TrendingBar: React.FC = () => {
   } else if (articles.length === 0) {
     content = renderFallback("No hay noticias internas publicadas por ahora.");
   } else {
-    content = renderAnimatedTopics();
+    content = renderTopics();
   }
 
   return (

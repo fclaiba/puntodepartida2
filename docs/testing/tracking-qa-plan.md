@@ -51,3 +51,4 @@ Registrar hallazgos en el tablero de incidencias con la siguiente metadata míni
 > Una vez completado el ciclo, actualizar esta página con los resultados y enlazar a logs o issues abiertos.
 
 
+
