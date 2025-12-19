@@ -2,6 +2,41 @@ import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Youtube, Mail } from 'lucide-react';
 
+// Custom X (Twitter) Icon
+const XIcon = ({ size = 24, color = "currentColor", ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+    <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+  </svg>
+);
+
+// Custom TikTok Icon
+const TikTokIcon = ({ size = 24, color = "currentColor", ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+  </svg>
+);
+
 export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
@@ -63,11 +98,21 @@ export const Footer: React.FC = () => {
   ];
 
   const socialLinks = [
-    { icon: Facebook, href: '#', label: 'Facebook' },
-    { icon: Twitter, href: '#', label: 'Twitter' },
-    { icon: Instagram, href: '#', label: 'Instagram' },
-    { icon: Youtube, href: '#', label: 'YouTube' },
-    { icon: Mail, href: '#', label: 'Email' },
+    {
+      icon: Instagram,
+      href: 'https://www.instagram.com/pdp.diario?igsh=MTgxbXp0enBhOTR0Mw==',
+      label: 'Instagram'
+    },
+    {
+      icon: XIcon,
+      href: 'https://x.com/pdp_diario?s=21',
+      label: 'X'
+    },
+    {
+      icon: TikTokIcon,
+      href: 'https://www.tiktok.com/@puntodepartida.oficial?_r=1&_t=ZM-92KU0V3zdnf',
+      label: 'TikTok'
+    },
   ];
 
   return (
