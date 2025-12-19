@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Menu, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
+import { NewsTicker } from './NewsTicker';
 
 const navItems = [
   { label: 'Política', href: '/politica' },
@@ -30,6 +31,7 @@ export const Header: React.FC = () => {
   return (
     <>
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <NewsTicker />
         <div className="container mx-auto px-5 md:px-10 lg:px-[60px]">
           {/* Top Bar */}
           <div className="flex items-center justify-between py-3 md:py-4">
@@ -45,7 +47,7 @@ export const Header: React.FC = () => {
             {/* Logo */}
             <div className="flex-1 lg:flex-none flex justify-center lg:justify-start">
               <Link to="/" className="flex items-center gap-2 md:gap-3 touch-manipulation active:scale-98">
-                <div 
+                <div
                   className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: 'var(--color-brand-primary)' }}
                 >
@@ -54,20 +56,20 @@ export const Header: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <div 
+                  <div
                     className="tracking-tight leading-none"
-                    style={{ 
-                      fontSize: 'clamp(20px, 4vw, 24px)', 
+                    style={{
+                      fontSize: 'clamp(20px, 4vw, 24px)',
                       fontWeight: 800,
                       color: 'var(--color-brand-primary)'
                     }}
                   >
                     PDP
                   </div>
-                  <div 
+                  <div
                     className="tracking-wide leading-none mt-0.5 hidden sm:block"
-                    style={{ 
-                      fontSize: '10px', 
+                    style={{
+                      fontSize: '10px',
                       fontWeight: 400,
                       color: 'var(--color-brand-secondary)',
                       letterSpacing: '0.1em'
@@ -95,19 +97,18 @@ export const Header: React.FC = () => {
               <Link
                 key={item.label}
                 to={item.href}
-                className={`relative group py-1 transition-colors ${
-                  item.isSpecial 
-                    ? 'text-[var(--color-brand-primary)] font-bold' 
+                className={`relative group py-1 transition-colors ${item.isSpecial
+                    ? 'text-[var(--color-brand-primary)] font-bold'
                     : 'hover:text-[var(--color-brand-primary)]'
-                }`}
-                style={{ 
-                  fontSize: item.isSpecial ? '14px' : '14px', 
-                  fontWeight: item.isSpecial ? 700 : 500, 
-                  letterSpacing: item.isSpecial ? '0.05em' : '0.02em' 
+                  }`}
+                style={{
+                  fontSize: item.isSpecial ? '14px' : '14px',
+                  fontWeight: item.isSpecial ? 700 : 500,
+                  letterSpacing: item.isSpecial ? '0.05em' : '0.02em'
                 }}
               >
                 {item.label}
-                <span 
+                <span
                   className="absolute bottom-0 left-0 w-0 h-0.5 group-hover:w-full transition-all duration-300"
                   style={{ backgroundColor: 'var(--color-brand-primary)' }}
                 />
@@ -141,7 +142,7 @@ export const Header: React.FC = () => {
                     <button
                       type="submit"
                       className="flex-1 sm:flex-none px-6 py-2 rounded-lg transition-all hover:scale-105"
-                      style={{ 
+                      style={{
                         backgroundColor: 'var(--color-brand-primary)',
                         color: 'white',
                         fontSize: '14px',
@@ -189,12 +190,12 @@ export const Header: React.FC = () => {
             >
               <div className="p-5 md:p-6">
                 <div className="flex items-center justify-between mb-8">
-                  <Link 
+                  <Link
                     to="/"
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center gap-3"
                   >
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center"
                       style={{ backgroundColor: 'var(--color-brand-primary)' }}
                     >
@@ -202,10 +203,10 @@ export const Header: React.FC = () => {
                         P
                       </span>
                     </div>
-                    <div 
+                    <div
                       className="tracking-tight"
-                      style={{ 
-                        fontSize: '24px', 
+                      style={{
+                        fontSize: '24px',
                         fontWeight: 800,
                         color: 'var(--color-brand-primary)'
                       }}
@@ -226,8 +227,8 @@ export const Header: React.FC = () => {
                   to="/buscar"
                   onClick={() => setIsMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3.5 mb-4 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation active:bg-gray-200"
-                  style={{ 
-                    fontSize: '16px', 
+                  style={{
+                    fontSize: '16px',
                     fontWeight: 500,
                     backgroundColor: '#f9f9f9'
                   }}
@@ -236,11 +237,11 @@ export const Header: React.FC = () => {
                   Buscar noticias
                 </Link>
 
-                <div 
+                <div
                   className="mb-4 pb-4"
                   style={{ borderBottom: '1px solid #e5e5e5' }}
                 >
-                  <span 
+                  <span
                     className="px-4 text-gray-500"
                     style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em' }}
                   >
@@ -263,19 +264,19 @@ export const Header: React.FC = () => {
                 </div>
 
                 {/* Newsletter CTA in mobile menu */}
-                <div 
+                <div
                   className="mt-8 p-4 rounded-xl"
-                  style={{ 
+                  style={{
                     background: 'linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-neutral-500) 100%)'
                   }}
                 >
-                  <h3 
+                  <h3
                     className="text-white mb-2"
                     style={{ fontSize: '16px', fontWeight: 700 }}
                   >
                     Newsletter
                   </h3>
-                  <p 
+                  <p
                     className="text-white/90 mb-4"
                     style={{ fontSize: '13px', lineHeight: '1.5' }}
                   >
@@ -289,7 +290,7 @@ export const Header: React.FC = () => {
                   />
                   <button
                     className="w-full px-4 py-2 rounded-lg transition-all"
-                    style={{ 
+                    style={{
                       backgroundColor: 'var(--color-brand-secondary)',
                       color: 'white',
                       fontSize: '14px',

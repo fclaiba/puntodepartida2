@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { Save, Globe, Palette, Bell, Mail, BarChart } from 'lucide-react';
+import { Save, Globe, Palette, Bell, Mail } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useAdmin } from '../../contexts/AdminContext';

@@ -1,45 +1,90 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { CheckCircle, XCircle, Trash2, Search, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Trash2, Search, Filter, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useAdmin } from '../../contexts/AdminContext';
 import { ProtectedRoute } from '../../components/admin/ProtectedRoute';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { Id } from '@convex/_generated/dataModel';
 
 const CommentModerationContent: React.FC = () => {
-  const { comments, approveComment, rejectComment, deleteComment } = useAdmin();
+  const { comments, approveComment, rejectComment, deleteComment, isCommentsLoading } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [pendingActions, setPendingActions] = useState<Record<string, 'approve' | 'reject' | 'delete'>>({});
 
-  const filteredComments = comments.filter(comment => {
-    const matchesSearch = 
-      comment.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      comment.articleTitle.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = filterStatus === 'all' || comment.status === filterStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const filteredComments = useMemo(() => {
+    return comments.filter(comment => {
+      const matchesSearch =
+        comment.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (comment.articleTitle || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus = filterStatus === 'all' || comment.status === filterStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [comments, filterStatus, searchQuery]);
 
   const pendingCount = comments.filter(c => c.status === 'pending').length;
   const approvedCount = comments.filter(c => c.status === 'approved').length;
   const rejectedCount = comments.filter(c => c.status === 'rejected').length;
 
-  const handleApprove = (id: string) => {
-    approveComment(id);
-    toast.success('Comentario aprobado');
+  const startAction = (id: Id<"comments">, action: 'approve' | 'reject' | 'delete') => {
+    const key = id as string;
+    setPendingActions(prev => ({ ...prev, [key]: action }));
   };
 
-  const handleReject = (id: string) => {
-    rejectComment(id);
-    toast.success('Comentario rechazado');
+  const endAction = (id: Id<"comments">) => {
+    const key = id as string;
+    setPendingActions(prev => {
+      const { [key]: _ignored, ...rest } = prev;
+      return rest;
+    });
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('¿Estás seguro de eliminar este comentario?')) {
-      deleteComment(id);
+  const handleApprove = async (id: Id<"comments">) => {
+    startAction(id, 'approve');
+    try {
+      await approveComment(id);
+      toast.success('Comentario aprobado');
+    } catch (error) {
+      console.error('Error approving comment', error);
+      toast.error('No se pudo aprobar el comentario');
+    } finally {
+      endAction(id);
+    }
+  };
+
+  const handleReject = async (id: Id<"comments">) => {
+    startAction(id, 'reject');
+    try {
+      await rejectComment(id);
+      toast.success('Comentario rechazado');
+    } catch (error) {
+      console.error('Error rejecting comment', error);
+      toast.error('No se pudo rechazar el comentario');
+    } finally {
+      endAction(id);
+    }
+  };
+
+  const handleDelete = async (id: Id<"comments">) => {
+    const confirmed = window.confirm('¿Estás seguro de eliminar este comentario?');
+    if (!confirmed) {
+      return;
+    }
+
+    startAction(id, 'delete');
+    try {
+      await deleteComment(id);
       toast.success('Comentario eliminado');
+    } catch (error) {
+      console.error('Error deleting comment', error);
+      toast.error('No se pudo eliminar el comentario');
+    } finally {
+      endAction(id);
     }
   };
 
@@ -80,19 +125,19 @@ const CommentModerationContent: React.FC = () => {
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p className="text-yellow-800 text-sm mb-1">Pendientes</p>
             <p style={{ fontSize: '28px', fontWeight: 700, color: '#d97706' }}>
-              {pendingCount}
+              {isCommentsLoading ? '...' : pendingCount}
             </p>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <p className="text-green-800 text-sm mb-1">Aprobados</p>
             <p style={{ fontSize: '28px', fontWeight: 700, color: '#16a34a' }}>
-              {approvedCount}
+              {isCommentsLoading ? '...' : approvedCount}
             </p>
           </div>
           <div className="bg-red-50 border border-red-200 rounded-xl p-4">
             <p className="text-red-800 text-sm mb-1">Rechazados</p>
             <p style={{ fontSize: '28px', fontWeight: 700, color: '#dc2626' }}>
-              {rejectedCount}
+              {isCommentsLoading ? '...' : rejectedCount}
             </p>
           </div>
         </div>
@@ -136,7 +181,11 @@ const CommentModerationContent: React.FC = () => {
         </div>
 
         {/* Comments List */}
-        {filteredComments.length === 0 ? (
+        {isCommentsLoading ? (
+          <div className="bg-white rounded-xl border border-gray-200">
+            <LoadingSpinner />
+          </div>
+        ) : filteredComments.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Search size={48} className="mx-auto mb-4 opacity-20" />
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
@@ -152,10 +201,12 @@ const CommentModerationContent: React.FC = () => {
           <div className="space-y-4">
             {filteredComments.map((comment, index) => {
               const statusStyle = getStatusColor(comment.status);
+              const commentKey = comment._id as string;
+              const actionInProgress = pendingActions[commentKey];
               
               return (
                 <motion.div
-                  key={comment.id}
+                  key={comment._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -203,8 +254,9 @@ const CommentModerationContent: React.FC = () => {
                   <div className="flex items-center gap-2">
                     {comment.status !== 'approved' && (
                       <button
-                        onClick={() => handleApprove(comment.id)}
-                        className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                        onClick={() => handleApprove(comment._id)}
+                        disabled={actionInProgress !== undefined}
+                        className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                         style={{ 
                           backgroundColor: '#dcfce7',
                           color: '#16a34a',
@@ -212,15 +264,20 @@ const CommentModerationContent: React.FC = () => {
                           fontWeight: 600
                         }}
                       >
-                        <CheckCircle size={16} />
-                        Aprobar
+                        {actionInProgress === 'approve' ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <CheckCircle size={16} />
+                        )}
+                        {actionInProgress === 'approve' ? 'Aprobando...' : 'Aprobar'}
                       </button>
                     )}
                     
                     {comment.status !== 'rejected' && (
                       <button
-                        onClick={() => handleReject(comment.id)}
-                        className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                        onClick={() => handleReject(comment._id)}
+                        disabled={actionInProgress !== undefined}
+                        className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                         style={{ 
                           backgroundColor: '#fee2e2',
                           color: '#dc2626',
@@ -228,17 +285,26 @@ const CommentModerationContent: React.FC = () => {
                           fontWeight: 600
                         }}
                       >
-                        <XCircle size={16} />
-                        Rechazar
+                        {actionInProgress === 'reject' ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <XCircle size={16} />
+                        )}
+                        {actionInProgress === 'reject' ? 'Rechazando...' : 'Rechazar'}
                       </button>
                     )}
 
                     <button
-                      onClick={() => handleDelete(comment.id)}
-                      className="ml-auto p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                      onClick={() => handleDelete(comment._id)}
+                      disabled={actionInProgress !== undefined}
+                      className="ml-auto p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       title="Eliminar"
                     >
-                      <Trash2 size={18} />
+                      {actionInProgress === 'delete' ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
                     </button>
                   </div>
                 </motion.div>

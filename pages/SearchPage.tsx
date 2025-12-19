@@ -1,38 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, ArrowLeft } from 'lucide-react';
-import { useArticles } from '../hooks/useArticles';
+import { useQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { NewsCard } from '../components/NewsCard';
-import { SectionHeader } from '../components/SectionHeader';
+import { SectionType } from '../components/SectionTag';
 
 export const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('q') || '');
-  const allArticles = useArticles();
-  const [results, setResults] = useState<typeof allArticles>([]);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    const q = searchParams.get('q') || '';
-    setQuery(q);
-    
-    if (q.trim()) {
-      const searchTerm = q.toLowerCase();
-      const filtered = allArticles.filter(article => 
-        article.title.toLowerCase().includes(searchTerm) ||
-        article.description.toLowerCase().includes(searchTerm) ||
-        article.content.toLowerCase().includes(searchTerm) ||
-        article.author.toLowerCase().includes(searchTerm)
-      );
-      setResults(filtered);
-    } else {
-      setResults([]);
+  // Fetch all public articles for client-side filtering
+  const allArticlesRaw = useQuery(api.articles.getPublic, {});
+  const allArticles = (allArticlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
+
+  const activeQueryParam = (searchParams.get('q') || '').trim();
+
+  const results = useMemo(() => {
+    if (!activeQueryParam) {
+      return [];
     }
-  }, [searchParams, allArticles]);
+
+    const searchTerm = activeQueryParam.toLowerCase();
+    return allArticles.filter(article =>
+      article.title.toLowerCase().includes(searchTerm) ||
+      article.description.toLowerCase().includes(searchTerm) ||
+      article.content.toLowerCase().includes(searchTerm) ||
+      article.author.toLowerCase().includes(searchTerm)
+    );
+  }, [activeQueryParam, allArticles]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      setSearchParams({ q: query.trim() });
+    const value = inputRef.current?.value?.trim() ?? '';
+    if (value) {
+      setSearchParams({ q: value });
+    } else {
+      setSearchParams({});
     }
   };
 
@@ -40,7 +44,7 @@ export const SearchPage: React.FC = () => {
     <div className="min-h-screen bg-white">
       {/* Breadcrumb */}
       <div className="container mx-auto px-4 py-6">
-        <Link 
+        <Link
           to="/"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-[var(--color-brand-primary)] transition-colors"
           style={{ fontSize: '14px', fontWeight: 500 }}
@@ -53,19 +57,20 @@ export const SearchPage: React.FC = () => {
       <div className="container mx-auto px-4 pb-16">
         {/* Search Bar */}
         <div className="max-w-3xl mx-auto mb-12">
-          <h1 
+          <h1
             className="mb-6 text-center"
             style={{ fontSize: 'clamp(24px, 6vw, 36px)', fontWeight: 800 }}
           >
             Buscar Noticias
           </h1>
-          
+
           <form onSubmit={handleSearch} className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl focus-within:border-[var(--color-brand-primary)] transition-colors">
             <Search size={24} className="text-gray-400" />
             <input
+              ref={inputRef}
+              key={activeQueryParam}
               type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              defaultValue={activeQueryParam}
               placeholder="Buscar por título, autor o contenido..."
               className="flex-1 bg-transparent outline-none"
               style={{ fontSize: '16px' }}
@@ -74,7 +79,7 @@ export const SearchPage: React.FC = () => {
             <button
               type="submit"
               className="px-6 py-2 rounded-lg transition-all hover:scale-105"
-              style={{ 
+              style={{
                 backgroundColor: 'var(--color-brand-primary)',
                 color: 'white',
                 fontSize: '14px',
@@ -87,16 +92,16 @@ export const SearchPage: React.FC = () => {
         </div>
 
         {/* Results */}
-        {query && (
+        {activeQueryParam && (
           <div className="max-w-6xl mx-auto">
             <div className="mb-6">
-              <h2 
+              <h2
                 className="text-gray-700"
                 style={{ fontSize: '18px', fontWeight: 600 }}
               >
-                {results.length > 0 
-                  ? `Se encontraron ${results.length} resultado${results.length !== 1 ? 's' : ''} para "${query}"`
-                  : `No se encontraron resultados para "${query}"`
+                {results.length > 0
+                  ? `Se encontraron ${results.length} resultado${results.length !== 1 ? 's' : ''} para "${activeQueryParam}"`
+                  : `No se encontraron resultados para "${activeQueryParam}"`
                 }
               </h2>
             </div>
@@ -104,11 +109,11 @@ export const SearchPage: React.FC = () => {
             {results.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {results.map((article) => (
-                  <Link key={article.id} to={`/noticia/${article.id}`}>
+                  <Link key={article._id} to={`/noticia/${article._id}`}>
                     <NewsCard
                       variant="standard"
                       title={article.title}
-                      section={article.section}
+                      section={article.section as SectionType}
                       imageUrl={article.imageUrl}
                       description={article.description}
                     />
@@ -117,7 +122,7 @@ export const SearchPage: React.FC = () => {
               </div>
             )}
 
-            {results.length === 0 && query && (
+            {results.length === 0 && (
               <div className="text-center py-12">
                 <div className="mb-4">
                   <Search size={64} className="mx-auto text-gray-300" />
@@ -133,7 +138,7 @@ export const SearchPage: React.FC = () => {
           </div>
         )}
 
-        {!query && (
+        {!activeQueryParam && (
           <div className="text-center py-12">
             <div className="mb-4">
               <Search size={64} className="mx-auto text-gray-300" />

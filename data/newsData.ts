@@ -1,4 +1,4 @@
-import { SectionType } from '../components/SectionTag';
+import { SectionType } from './types';
 
 export type NewsSection = SectionType;
 
@@ -555,7 +555,7 @@ El desafío del desarrollo sostenible requiere repensar fundamentalmente cómo d
 // Get all articles from localStorage or use initial data
 export const getNewsArticles = (): NewsArticle[] => {
   if (typeof window === 'undefined') return initialNewsArticles;
-  
+
   const stored = localStorage.getItem('pdp_admin_articles');
   if (stored) {
     const articles = JSON.parse(stored);
@@ -568,7 +568,7 @@ export const getNewsArticles = (): NewsArticle[] => {
 // Initialize localStorage with sample data if empty
 export const initializeNewsData = () => {
   if (typeof window === 'undefined') return;
-  
+
   const stored = localStorage.getItem('pdp_admin_articles');
   if (!stored) {
     localStorage.setItem('pdp_admin_articles', JSON.stringify(initialNewsArticles));

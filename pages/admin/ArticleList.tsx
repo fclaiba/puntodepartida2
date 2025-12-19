@@ -7,24 +7,36 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useAdmin } from '../../contexts/AdminContext';
 import { ProtectedRoute } from '../../components/admin/ProtectedRoute';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
 
 const ArticleListContent: React.FC = () => {
-  const { articles, deleteArticle, currentUser } = useAdmin();
+  const { currentUser } = useAdmin();
+  const articlesRaw = useQuery(api.articles.getAll);
+  const articles = (articlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
+  const deleteArticle = useMutation(api.articles.remove);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState<string>('all');
 
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         article.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         article.author?.toLowerCase().includes(searchQuery.toLowerCase());
+      article.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      article.author?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSection = selectedSection === 'all' || article.section === selectedSection;
     return matchesSearch && matchesSection;
   });
 
-  const handleDelete = (id: string, title: string) => {
+  const handleDelete = async (id: Id<"articles">, title: string) => {
     if (window.confirm(`¿Estás seguro de eliminar "${title}"?`)) {
-      deleteArticle(id);
-      toast.success('Artículo eliminado con éxito');
+      try {
+        await deleteArticle({ id });
+        toast.success('Artículo eliminado con éxito');
+      } catch (error) {
+        toast.error('Error al eliminar el artículo');
+        console.error(error);
+      }
     }
   };
 
@@ -49,9 +61,9 @@ const ArticleListContent: React.FC = () => {
 
           {canEdit && (
             <Link
-              to="/admin/articles/new"
+              to="/panel/articles/new"
               className="px-6 py-3 rounded-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-2"
-              style={{ 
+              style={{
                 backgroundColor: 'var(--color-brand-primary)',
                 color: 'white',
                 fontSize: '14px',
@@ -69,8 +81,8 @@ const ArticleListContent: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="relative">
-              <Search 
-                size={20} 
+              <Search
+                size={20}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
@@ -85,8 +97,8 @@ const ArticleListContent: React.FC = () => {
 
             {/* Section Filter */}
             <div className="relative">
-              <Filter 
-                size={20} 
+              <Filter
+                size={20}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <select
@@ -114,15 +126,15 @@ const ArticleListContent: React.FC = () => {
               No se encontraron artículos
             </h3>
             <p className="text-gray-600" style={{ fontSize: '14px' }}>
-              {searchQuery || selectedSection !== 'all' 
-                ? 'Intenta con otros términos de búsqueda o filtros' 
+              {searchQuery || selectedSection !== 'all'
+                ? 'Intenta con otros términos de búsqueda o filtros'
                 : 'Comienza creando tu primer artículo'}
             </p>
             {canEdit && !searchQuery && selectedSection === 'all' && (
               <Link
-                to="/admin/articles/new"
+                to="/panel/articles/new"
                 className="inline-block mt-6 px-6 py-3 rounded-lg"
-                style={{ 
+                style={{
                   backgroundColor: 'var(--color-brand-primary)',
                   color: 'white',
                   fontSize: '14px',
@@ -163,7 +175,7 @@ const ArticleListContent: React.FC = () => {
                 <tbody>
                   {filteredArticles.map((article, index) => (
                     <motion.tr
-                      key={article.id}
+                      key={article._id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.02 }}
@@ -178,7 +190,7 @@ const ArticleListContent: React.FC = () => {
                             className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                           />
                           <div className="min-w-0">
-                            <h3 
+                            <h3
                               className="line-clamp-2 mb-1"
                               style={{ fontSize: '14px', fontWeight: 600 }}
                             >
@@ -191,9 +203,9 @@ const ArticleListContent: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 hidden lg:table-cell">
-                        <span 
+                        <span
                           className="px-2 py-1 rounded text-xs capitalize"
-                          style={{ 
+                          style={{
                             backgroundColor: 'var(--color-brand-primary)',
                             color: 'white',
                             fontWeight: 600
@@ -232,7 +244,7 @@ const ArticleListContent: React.FC = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            to={`/noticia/${article.id}`}
+                            to={`/noticia/${article._id}`}
                             target="_blank"
                             className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                             title="Ver artículo"
@@ -242,7 +254,7 @@ const ArticleListContent: React.FC = () => {
                           {canEdit && (
                             <>
                               <Link
-                                to={`/admin/articles/edit/${article.id}`}
+                                to={`/panel/articles/edit/${article._id}`}
                                 className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                                 title="Editar"
                               >
@@ -250,7 +262,7 @@ const ArticleListContent: React.FC = () => {
                               </Link>
                               {currentUser?.role === 'admin' && (
                                 <button
-                                  onClick={() => handleDelete(article.id, article.title)}
+                                  onClick={() => handleDelete(article._id, article.title)}
                                   className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                                   title="Eliminar"
                                 >

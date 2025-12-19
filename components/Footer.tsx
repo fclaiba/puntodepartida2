@@ -25,7 +25,7 @@ export const Footer: React.FC = () => {
     // If 5 clicks, navigate to admin
     if (newCount >= 5) {
       setClickCount(0);
-      navigate('/admin/login');
+      navigate('/panel/login');
     }
   };
 
@@ -71,9 +71,9 @@ export const Footer: React.FC = () => {
   ];
 
   return (
-    <footer 
+    <footer
       className="mt-12 md:mt-20 py-8 md:py-12 border-t"
-      style={{ 
+      style={{
         backgroundColor: 'var(--color-brand-secondary)',
         borderColor: 'rgba(255, 255, 255, 0.1)'
       }}
@@ -84,7 +84,7 @@ export const Footer: React.FC = () => {
           {/* Logo and Description */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3 mb-3 md:mb-4">
-              <div 
+              <div
                 onClick={handleLogoClick}
                 className="w-12 h-12 rounded-lg flex items-center justify-center cursor-pointer select-none transition-all hover:scale-105 active:scale-95"
                 style={{ backgroundColor: 'var(--color-brand-primary)' }}
@@ -95,13 +95,13 @@ export const Footer: React.FC = () => {
                 </span>
               </div>
               <div>
-                <div 
+                <div
                   className="text-white tracking-tight leading-none"
                   style={{ fontSize: '28px', fontWeight: 800 }}
                 >
                   PDP
                 </div>
-                <div 
+                <div
                   className="text-white/70 tracking-wide leading-none mt-1"
                   style={{ fontSize: '10px', letterSpacing: '0.1em' }}
                 >
@@ -109,13 +109,13 @@ export const Footer: React.FC = () => {
                 </div>
               </div>
             </div>
-            <p 
+            <p
               className="text-white/70 mb-4 md:mb-6 max-w-sm"
               style={{ fontSize: 'clamp(13px, 2vw, 14px)', lineHeight: '1.6' }}
             >
               Tu fuente confiable de información. Noticias verificadas y análisis profundo de los acontecimientos que importan.
             </p>
-            
+
             {/* Social Links */}
             <div className="flex items-center gap-2 md:gap-3">
               {socialLinks.map(({ icon: Icon, href, label }) => (
@@ -124,7 +124,7 @@ export const Footer: React.FC = () => {
                   href={href}
                   aria-label={label}
                   className="w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110"
-                  style={{ 
+                  style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     color: 'white'
                   }}
@@ -138,7 +138,7 @@ export const Footer: React.FC = () => {
           {/* Links Sections */}
           {sections.map((section) => (
             <div key={section.title}>
-              <h3 
+              <h3
                 className="text-white mb-4"
                 style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '0.05em' }}
               >
@@ -172,21 +172,21 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Newsletter */}
-        <div 
+        <div
           className="py-6 md:py-8 mb-6 md:mb-8 rounded-lg md:rounded-xl"
-          style={{ 
+          style={{
             backgroundColor: 'rgba(124, 52, 138, 0.2)',
             border: '1px solid rgba(124, 52, 138, 0.3)'
           }}
         >
           <div className="max-w-2xl mx-auto px-4 md:px-6 text-center">
-            <h3 
+            <h3
               className="text-white mb-2"
               style={{ fontSize: 'clamp(18px, 3vw, 20px)', fontWeight: 700 }}
             >
               Suscribite a nuestro newsletter
             </h3>
-            <p 
+            <p
               className="text-white/70 mb-4 md:mb-6"
               style={{ fontSize: 'clamp(13px, 2vw, 14px)' }}
             >
@@ -201,7 +201,7 @@ export const Footer: React.FC = () => {
               />
               <button
                 className="px-6 py-3 rounded-lg transition-all hover:scale-105"
-                style={{ 
+                style={{
                   backgroundColor: 'var(--color-brand-primary)',
                   color: 'white',
                   fontSize: '14px',
@@ -215,33 +215,33 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Section */}
-        <div 
+        <div
           className="pt-6 md:pt-8 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4"
           style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}
         >
-          <p 
+          <p
             className="text-white/60 text-center md:text-left"
             style={{ fontSize: 'clamp(12px, 2vw, 13px)' }}
           >
             © {currentYear} PDP Diario Digital. Todos los derechos reservados.
           </p>
           <div className="flex items-center gap-4 md:gap-6">
-            <a 
-              href="#" 
+            <a
+              href="#"
               className="text-white/60 hover:text-white transition-colors"
               style={{ fontSize: '13px' }}
             >
               Términos de uso
             </a>
-            <a 
-              href="#" 
+            <a
+              href="#"
               className="text-white/60 hover:text-white transition-colors"
               style={{ fontSize: '13px' }}
             >
               Privacidad
             </a>
-            <a 
-              href="#" 
+            <a
+              href="#"
               className="text-white/60 hover:text-white transition-colors"
               style={{ fontSize: '13px' }}
             >

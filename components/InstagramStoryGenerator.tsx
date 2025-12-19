@@ -1,10 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Download, Share2, Instagram, Check, Palette, Link } from 'lucide-react';
+import { X, Download, Instagram, Check } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { toPng } from 'html-to-image';
 import { NewsArticle, NewsSection } from '../data/newsData';
-import { SectionTag } from './SectionTag';
 import { StoryTemplateSelector, StoryTemplate, getTemplateStyles } from './StoryTemplateSelector';
 
 // Helper function to get section colors - using direct hex values for html2canvas compatibility
@@ -197,7 +196,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
           link.click();
           document.body.removeChild(link);
         }
-      } catch (e) {
+      } catch {
         // Si el compartir falla, intentar descarga directa
         const link = document.createElement('a');
         link.href = url;
@@ -252,7 +251,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
             link.click();
             document.body.removeChild(link);
           }
-        } catch (_) {
+        } catch {
           const link = document.createElement('a');
           link.href = url;
           link.download = `pdp-story-${article.id}.png`;
@@ -317,7 +316,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
       setImageGenerated(false);
       setGeneratedImageUrl(null);
     }
-  }, [isOpen]);
+  }, [imageGenerated, isOpen]);
 
   const templateStyles = getTemplateStyles(selectedTemplate);
 

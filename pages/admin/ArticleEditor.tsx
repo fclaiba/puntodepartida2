@@ -1,18 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { Save, Eye, ArrowLeft, Image as ImageIcon, Calendar } from 'lucide-react';
-import { NewsSection, NewsSections } from '../../data/newsData';
+import { Save, Eye, ArrowLeft, Upload, Link as LinkIcon, X } from 'lucide-react';
+import { NewsSection } from '../../data/newsData';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useAdmin } from '../../contexts/AdminContext';
 import { ProtectedRoute } from '../../components/admin/ProtectedRoute';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
+import { useConvexUpload } from '../../hooks/useConvexUpload';
 
 const ArticleEditorContent: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const { articles, addArticle, updateArticle, currentUser } = useAdmin();
+  const { id } = useParams<{ id: string }>();
+  const { currentUser } = useAdmin();
   const isEditing = !!id;
+
+  // Convex hooks
+  const article = useQuery(api.articles.getById, isEditing ? { id: id as Id<"articles"> } : "skip");
+  const create = useMutation(api.articles.create);
+  const update = useMutation(api.articles.update);
+  const uploadFile = useConvexUpload();
+
+  const [imageSource, setImageSource] = useState<'url' | 'upload'>('url');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -26,57 +41,104 @@ const ArticleEditorContent: React.FC = () => {
   });
 
   const [showPreview, setShowPreview] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (isEditing) {
-      const article = articles.find(a => a.id === id);
-      if (article) {
-        setFormData({
-          title: article.title,
-          description: article.description || '',
-          section: article.section,
-          author: article.author,
-          readTime: article.readTime,
-          imageUrl: article.imageUrl,
-          content: article.content,
-          featured: article.featured || false
-        });
-      } else {
-        toast.error('Artículo no encontrado');
-        navigate('/admin/articles');
+    if (isEditing && article) {
+      setFormData({
+        title: article.title,
+        description: article.description || '',
+        section: article.section as NewsSection,
+        author: article.author,
+        readTime: article.readTime,
+        imageUrl: article.imageUrl,
+        content: article.content,
+        featured: article.featured || false
+      });
+      setPreviewUrl(article.imageUrl);
+      if (article.storageId) {
+        setImageSource('upload');
       }
+    } else if (isEditing && article === null) {
+      toast.error('Artículo no encontrado');
+      navigate('/panel/articles');
     }
-  }, [id, isEditing, articles, navigate]);
+  }, [isEditing, article, navigate]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : name === 'readTime' ? parseInt(value) || 0 : value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Client-side validation
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      if (!validTypes.includes(file.type)) {
+        toast.error('Solo se permiten archivos JPG, JPEG o PNG');
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        toast.error('El archivo no debe superar los 5MB');
+        return;
+      }
+
+      setSelectedFile(file);
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+      objectUrlRef.current = objectUrl;
+      setImageSource('upload');
+      setFormData(prev => ({ ...prev, imageUrl: '' }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validaciones
-    if (!formData.title.trim()) {
+
+    if (isSubmitting) {
+      return;
+    }
+
+    setSubmitError(null);
+
+    const trimmedTitle = formData.title.trim();
+    const trimmedDescription = formData.description.trim();
+    const trimmedContent = formData.content.trim();
+    const trimmedAuthor = formData.author.trim();
+    const trimmedImageUrl = formData.imageUrl.trim();
+
+    if (!trimmedTitle) {
       toast.error('El título es obligatorio');
       return;
     }
-    if (!formData.description.trim()) {
+    if (!trimmedDescription) {
       toast.error('La descripción es obligatoria');
       return;
     }
-    if (!formData.imageUrl.trim()) {
+    if (imageSource === 'url' && !trimmedImageUrl) {
       toast.error('La URL de la imagen es obligatoria');
       return;
     }
-    if (!formData.content.trim()) {
+    if (imageSource === 'upload' && !selectedFile && !isEditing) {
+      toast.error('Debes subir una imagen');
+      return;
+    }
+    if (!trimmedContent) {
       toast.error('El contenido es obligatorio');
       return;
     }
@@ -85,26 +147,85 @@ const ArticleEditorContent: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
+      let storageId: Id<"_storage"> | undefined;
+
+      if (imageSource === 'upload' && selectedFile) {
+        try {
+          storageId = await uploadFile(selectedFile);
+        } catch (uploadError) {
+          const message = uploadError instanceof Error ? uploadError.message : 'No se pudo subir la imagen';
+          setSubmitError(message);
+          toast.error(message);
+          return;
+        }
+      }
+
+      if (!isEditing && imageSource === 'upload' && !storageId) {
+        toast.error('Debes subir una imagen válida');
+        return;
+      }
+
       if (isEditing && id) {
-        updateArticle(id, formData);
+        const updatePayload: Parameters<typeof update>[0] = {
+          id: id as Id<"articles">,
+          title: trimmedTitle,
+          description: trimmedDescription,
+          section: formData.section,
+          author: trimmedAuthor,
+          readTime: formData.readTime,
+          content: trimmedContent,
+          featured: formData.featured,
+          ...(imageSource === 'url' ? { imageUrl: trimmedImageUrl } : {}),
+          ...(storageId ? { storageId } : {}),
+        };
+
+        await update(updatePayload);
         toast.success('Artículo actualizado con éxito');
       } else {
-        addArticle(formData);
+        const createPayload: Parameters<typeof create>[0] = {
+          title: trimmedTitle,
+          description: trimmedDescription,
+          section: formData.section,
+          author: trimmedAuthor,
+          readTime: formData.readTime,
+          content: trimmedContent,
+          featured: formData.featured,
+          imageUrl: imageSource === 'url' ? trimmedImageUrl : '',
+          ...(storageId ? { storageId } : {}),
+        };
+
+        await create(createPayload);
         toast.success('Artículo creado con éxito');
       }
-      
+
+      if (imageSource === 'upload' && objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+
       setTimeout(() => {
-        navigate('/admin/articles');
+        navigate('/panel/articles');
       }, 1000);
     } catch (error) {
-      toast.error('Error al guardar el artículo');
+      console.error(error);
+      const message = error instanceof Error ? error.message : 'Error al guardar el artículo';
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleImageUrlChange = (url: string) => {
-    setFormData(prev => ({ ...prev, imageUrl: url }));
-  };
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
 
   return (
     <AdminLayout>
@@ -116,7 +237,7 @@ const ArticleEditorContent: React.FC = () => {
         <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/admin/articles')}
+              onClick={() => navigate('/panel/articles')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft size={20} />
@@ -148,9 +269,9 @@ const ArticleEditorContent: React.FC = () => {
           /* Preview Mode */
           <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 lg:p-12">
             <div className="max-w-3xl mx-auto">
-              {formData.imageUrl && (
+              {previewUrl && (
                 <img
-                  src={formData.imageUrl}
+                  src={previewUrl}
                   alt={formData.title}
                   className="w-full aspect-video object-cover rounded-xl mb-6"
                   onError={(e) => {
@@ -158,11 +279,11 @@ const ArticleEditorContent: React.FC = () => {
                   }}
                 />
               )}
-              
+
               <div className="mb-4">
-                <span 
+                <span
                   className="px-3 py-1 rounded-full text-sm capitalize"
-                  style={{ 
+                  style={{
                     backgroundColor: 'var(--color-brand-primary)',
                     color: 'white',
                     fontWeight: 600
@@ -191,10 +312,10 @@ const ArticleEditorContent: React.FC = () => {
               </div>
 
               {formData.description && (
-                <p 
+                <p
                   className="mb-8"
-                  style={{ 
-                    fontSize: '18px', 
+                  style={{
+                    fontSize: '18px',
                     lineHeight: '1.7',
                     color: '#4b5563',
                     fontWeight: 500
@@ -204,7 +325,7 @@ const ArticleEditorContent: React.FC = () => {
                 </p>
               )}
 
-              <div 
+              <div
                 className="prose max-w-none"
                 style={{ fontSize: '16px', lineHeight: '1.8' }}
               >
@@ -221,7 +342,7 @@ const ArticleEditorContent: React.FC = () => {
                 <button
                   onClick={() => setShowPreview(false)}
                   className="w-full px-6 py-3 rounded-lg transition-all hover:scale-[1.02]"
-                  style={{ 
+                  style={{
                     backgroundColor: 'var(--color-brand-primary)',
                     color: 'white',
                     fontSize: '16px',
@@ -236,12 +357,17 @@ const ArticleEditorContent: React.FC = () => {
         ) : (
           /* Edit Mode */
           <form onSubmit={handleSubmit}>
+            {submitError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                {submitError}
+              </div>
+            )}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Content */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Title */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <label 
+                  <label
                     htmlFor="title"
                     className="block mb-2"
                     style={{ fontSize: '14px', fontWeight: 600 }}
@@ -263,7 +389,7 @@ const ArticleEditorContent: React.FC = () => {
 
                 {/* Description */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <label 
+                  <label
                     htmlFor="description"
                     className="block mb-2"
                     style={{ fontSize: '14px', fontWeight: 600 }}
@@ -285,7 +411,7 @@ const ArticleEditorContent: React.FC = () => {
 
                 {/* Content */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <label 
+                  <label
                     htmlFor="content"
                     className="block mb-2"
                     style={{ fontSize: '14px', fontWeight: 600 }}
@@ -316,10 +442,10 @@ const ArticleEditorContent: React.FC = () => {
                   <h3 className="mb-4" style={{ fontSize: '16px', fontWeight: 700 }}>
                     Configuración
                   </h3>
-                  
+
                   <div className="space-y-4">
                     <div>
-                      <label 
+                      <label
                         htmlFor="section"
                         className="block mb-2"
                         style={{ fontSize: '14px', fontWeight: 600 }}
@@ -344,7 +470,7 @@ const ArticleEditorContent: React.FC = () => {
                     </div>
 
                     <div>
-                      <label 
+                      <label
                         htmlFor="author"
                         className="block mb-2"
                         style={{ fontSize: '14px', fontWeight: 600 }}
@@ -364,7 +490,7 @@ const ArticleEditorContent: React.FC = () => {
                     </div>
 
                     <div>
-                      <label 
+                      <label
                         htmlFor="readTime"
                         className="block mb-2"
                         style={{ fontSize: '14px', fontWeight: 600 }}
@@ -412,34 +538,125 @@ const ArticleEditorContent: React.FC = () => {
                   <h3 className="mb-4" style={{ fontSize: '16px', fontWeight: 700 }}>
                     Imagen destacada
                   </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label 
-                        htmlFor="imageUrl"
-                        className="block mb-2"
-                        style={{ fontSize: '14px', fontWeight: 600 }}
-                      >
-                        URL de la imagen *
-                      </label>
-                      <input
-                        id="imageUrl"
-                        name="imageUrl"
-                        type="url"
-                        value={formData.imageUrl}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all"
-                        placeholder="https://ejemplo.com/imagen.jpg"
-                        required
-                        style={{ fontSize: '14px' }}
-                      />
-                    </div>
 
-                    {formData.imageUrl && (
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageSource('upload');
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${imageSource === 'upload'
+                        ? 'bg-[var(--color-brand-primary)] text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                      <Upload size={16} />
+                      Subir archivo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageSource('url');
+                        setSelectedFile(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                        if (objectUrlRef.current) {
+                          URL.revokeObjectURL(objectUrlRef.current);
+                          objectUrlRef.current = null;
+                        }
+                        setPreviewUrl(formData.imageUrl);
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${imageSource === 'url'
+                        ? 'bg-[var(--color-brand-primary)] text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                      <LinkIcon size={16} />
+                      Enlace URL
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {imageSource === 'url' ? (
+                      <div>
+                        <label
+                          htmlFor="imageUrl"
+                          className="block mb-2"
+                          style={{ fontSize: '14px', fontWeight: 600 }}
+                        >
+                          URL de la imagen *
+                        </label>
+                        <input
+                          id="imageUrl"
+                          name="imageUrl"
+                          type="url"
+                          value={formData.imageUrl}
+                          onChange={(e) => {
+                            handleChange(e);
+                            setPreviewUrl(e.target.value);
+                          }}
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all"
+                          placeholder="https://ejemplo.com/imagen.jpg"
+                          required={imageSource === 'url'}
+                          style={{ fontSize: '14px' }}
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label
+                          className="block mb-2"
+                          style={{ fontSize: '14px', fontWeight: 600 }}
+                        >
+                          Subir imagen (JPG, PNG) *
+                        </label>
+                        <div
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[var(--color-brand-primary)] transition-colors cursor-pointer bg-gray-50"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/jpeg,image/png,image/jpg"
+                            onChange={handleFileChange}
+                          />
+                          <div className="flex flex-col items-center gap-2">
+                            <Upload className="text-gray-400" size={32} />
+                            <p className="text-sm text-gray-600">
+                              {selectedFile ? selectedFile.name : 'Haz clic para seleccionar una imagen'}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              Máximo 5MB
+                            </p>
+                          </div>
+                        </div>
+                        {selectedFile && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedFile(null);
+                              setPreviewUrl('');
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                              if (objectUrlRef.current) {
+                                URL.revokeObjectURL(objectUrlRef.current);
+                                objectUrlRef.current = null;
+                              }
+                            }}
+                            className="mt-2 text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                          >
+                            <X size={12} /> Eliminar selección
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {previewUrl && (
                       <div>
                         <p className="text-gray-600 text-xs mb-2">Vista previa:</p>
                         <img
-                          src={formData.imageUrl}
+                          src={previewUrl}
                           alt="Preview"
                           className="w-full aspect-video object-cover rounded-lg"
                           onError={(e) => {
@@ -461,21 +678,23 @@ const ArticleEditorContent: React.FC = () => {
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="w-full px-6 py-3 rounded-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 mb-3"
-                    style={{ 
+                    style={{
                       backgroundColor: 'var(--color-brand-primary)',
                       color: 'white',
                       fontSize: '16px',
-                      fontWeight: 600
+                      fontWeight: 600,
+                      opacity: isSubmitting ? 0.7 : 1
                     }}
                   >
                     <Save size={20} />
-                    {isEditing ? 'Actualizar Artículo' : 'Crear Artículo'}
+                    {isSubmitting ? 'Guardando...' : isEditing ? 'Actualizar Artículo' : 'Crear Artículo'}
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => navigate('/admin/articles')}
+                    onClick={() => navigate('/panel/articles')}
                     className="w-full px-6 py-3 rounded-lg border-2 border-gray-300 hover:border-gray-400 transition-colors"
                     style={{ fontSize: '14px', fontWeight: 600 }}
                   >

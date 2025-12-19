@@ -1,6 +1,6 @@
 import React from 'react';
-
-export type SectionType = 'politica' | 'economia' | 'internacional' | 'local' | 'opinion' | 'extrategia';
+import { SectionType } from '../data/types';
+export type { SectionType };
 
 interface SectionTagProps {
   section: SectionType;
@@ -17,30 +17,30 @@ const sectionConfig: Record<SectionType, { label: string; color: string }> = {
   extrategia: { label: 'EXTRATEGIA', color: 'var(--color-tag-extrategia)' },
 };
 
-export const SectionTag: React.FC<SectionTagProps> = ({ 
-  section, 
+export const SectionTag: React.FC<SectionTagProps> = ({
+  section,
   variant = 'dark',
-  className = '' 
+  className = ''
 }) => {
-  const config = sectionConfig[section];
+  const config = sectionConfig[section] || { label: section?.toUpperCase() || 'NOTICIA', color: '#666' };
   const bgColor = variant === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.95)';
   const textColor = variant === 'dark' ? '#ffffff' : '#000000';
 
   return (
-    <div 
+    <div
       className={`inline-flex items-center gap-1.5 md:gap-2 rounded-md overflow-hidden ${className}`}
       style={{
         backgroundColor: bgColor,
         backdropFilter: 'blur(8px)',
       }}
     >
-      <div 
+      <div
         className="w-1.5 md:w-2 h-full"
         style={{ backgroundColor: config.color }}
       />
-      <span 
+      <span
         className="px-2 md:px-3 py-1.5 md:py-2 tracking-wider"
-        style={{ 
+        style={{
           color: textColor,
           fontSize: 'clamp(10px, 2vw, 12px)',
           fontWeight: 600,

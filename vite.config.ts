@@ -37,6 +37,12 @@ function stripVersionSpecifier(): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [stripVersionSpecifier(), react()],
+  resolve: {
+    alias: {
+      '@convex': '/convex',
+      '@': '/src',
+    },
+  },
 });
 
 

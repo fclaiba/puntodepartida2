@@ -15,7 +15,7 @@ export const AdminLogin: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/admin');
+      navigate('/panel');
     }
   }, [isAuthenticated, navigate]);
 
@@ -26,13 +26,13 @@ export const AdminLogin: React.FC = () => {
 
     try {
       const success = await login(email, password);
-      
+
       if (success) {
-        navigate('/admin');
+        navigate('/panel');
       } else {
         setError('Email o contraseña incorrectos');
       }
-    } catch (err) {
+    } catch {
       setError('Error al iniciar sesión');
     } finally {
       setLoading(false);
@@ -40,7 +40,7 @@ export const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center px-4"
       style={{ backgroundColor: '#f9fafb' }}
     >
@@ -51,7 +51,7 @@ export const AdminLogin: React.FC = () => {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div 
+          <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
             style={{ backgroundColor: 'var(--color-brand-primary)' }}
           >
@@ -83,7 +83,7 @@ export const AdminLogin: React.FC = () => {
           )}
 
           <div>
-            <label 
+            <label
               htmlFor="email"
               className="block mb-2"
               style={{ fontSize: '14px', fontWeight: 600 }}
@@ -104,7 +104,7 @@ export const AdminLogin: React.FC = () => {
           </div>
 
           <div>
-            <label 
+            <label
               htmlFor="password"
               className="block mb-2"
               style={{ fontSize: '14px', fontWeight: 600 }}
@@ -138,7 +138,7 @@ export const AdminLogin: React.FC = () => {
             type="submit"
             disabled={loading}
             className="w-full py-3 rounded-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            style={{ 
+            style={{
               backgroundColor: 'var(--color-brand-primary)',
               color: 'white',
               fontSize: '16px',
@@ -151,7 +151,7 @@ export const AdminLogin: React.FC = () => {
         </form>
 
         {/* Demo Credentials */}
-        <div 
+        <div
           className="mt-8 p-4 rounded-lg"
           style={{ backgroundColor: '#eff6ff' }}
         >

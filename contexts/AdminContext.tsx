@@ -1,44 +1,58 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '../data/adminData';
-import { NewsArticle, initialNewsArticles } from '../data/newsData';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useMemo,
+} from 'react';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
 
-interface AdminContextType {
-  // Auth
-  currentUser: User | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  
-  // Users
-  users: User[];
-  addUser: (user: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  
-  // Articles
-  articles: NewsArticle[];
-  addArticle: (article: Omit<NewsArticle, 'id'>) => void;
-  updateArticle: (id: string, updates: Partial<NewsArticle>) => void;
-  deleteArticle: (id: string) => void;
-  publishArticle: (id: string) => void;
-  unpublishArticle: (id: string) => void;
-  
-  // Site Settings
-  siteSettings: SiteSettings;
-  updateSiteSettings: (settings: Partial<SiteSettings>) => void;
-  
-  // Analytics
-  analytics: Analytics;
-  
-  // Activity Log
-  activityLog: ActivityLogEntry[];
-  addActivityLog: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
-  
-  // Comments (for moderation)
-  comments: Comment[];
-  approveComment: (id: string) => void;
-  rejectComment: (id: string) => void;
-  deleteComment: (id: string) => void;
+// Types adapted to Convex
+export interface User {
+  _id: Id<"users">;
+  id: string; // Keeping for compatibility, mapped from _id
+  name: string;
+  email: string;
+  role: "admin" | "editor" | "lector";
+  createdAt: string;
+  lastLogin: string;
+  articlesPublished?: number;
+}
+
+export type ArticleStatus = 'draft' | 'scheduled' | 'published';
+export type ArticleSource = 'internal' | 'external';
+
+export interface NewsArticle {
+  _id: Id<"articles">;
+  id: string;
+  title: string;
+  section: string;
+  imageUrl: string;
+  description: string;
+  content: string;
+  author: string;
+  date: string;
+  readTime: number;
+  featured: boolean;
+  publishDate?: string;
+  views?: number;
+  status?: ArticleStatus;
+  source?: ArticleSource;
+}
+
+export interface Comment {
+  _id: Id<"comments">;
+  id: Id<"comments">;
+  articleId: Id<"articles">;
+  articleTitle?: string; // Need to fetch separately or join
+  author: string;
+  email: string;
+  content: string;
+  date: string;
+  status: "pending" | "approved" | "rejected";
 }
 
 export interface SiteSettings {
@@ -60,6 +74,31 @@ export interface SiteSettings {
   enableNewsletter: boolean;
 }
 
+export interface ReaderDistribution {
+  guest: number;
+  registered: number;
+  total: number;
+  sampleSize: number;
+  windowDays: number;
+}
+
+export interface ReadingTimeStats {
+  averageSeconds: number | null;
+  medianSeconds: number | null;
+  p90Seconds: number | null;
+  completionRate: number | null;
+  sampleSize: number;
+  windowDays: number;
+}
+
+export interface ShareMetrics {
+  totalShares: number;
+  shareRate: number | null;
+  sampleSize: number;
+  windowDays: number;
+  channels: Array<{ channel: string; count: number }>;
+}
+
 export interface Analytics {
   totalViews: number;
   totalArticles: number;
@@ -68,44 +107,84 @@ export interface Analytics {
   viewsToday: number;
   viewsThisWeek: number;
   viewsThisMonth: number;
+  viewsLastMonth: number;
+  monthlyViewGrowth: number | null;
   topArticles: Array<{ id: string; title: string; views: number }>;
   viewsBySection: Record<string, number>;
   viewsByDay: Array<{ date: string; views: number }>;
+  readerDistribution: ReaderDistribution;
+  readingTime: ReadingTimeStats;
+  shareMetrics: ShareMetrics;
+  viewsAreEstimated: boolean;
 }
 
 export interface ActivityLogEntry {
   id: string;
-  userId: string;
-  userName: string;
   action: string;
   details: string;
   timestamp: string;
-  type: 'article' | 'user' | 'settings' | 'comment';
+  userId?: string;
+  userName?: string;
+  type?: 'article' | 'user' | 'settings' | 'comment';
 }
 
-export interface Comment {
-  id: string;
-  articleId: string;
-  articleTitle: string;
-  author: string;
+type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
+
+type CreateUserInput = {
+  name: string;
   email: string;
-  content: string;
-  date: string;
-  status: 'pending' | 'approved' | 'rejected';
+  password: string;
+  role: "admin" | "editor" | "lector";
+};
+
+interface AdminContextType {
+  // Auth
+  currentUser: User | null;
+  isAuthenticated: boolean;
+  isAuthLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+
+  // Users
+  users: User[];
+  addUser: (user: CreateUserInput) => Promise<Id<"users">>;
+  updateUser: (id: string, updates: Partial<User> & { password?: string }) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
+  userCreationStatus: AsyncStatus;
+  userCreationError: string | null;
+  resetUserCreationStatus: () => void;
+
+  // Articles
+  articles: NewsArticle[];
+  addArticle: (article: any) => Promise<void>;
+  updateArticle: (id: string, updates: Partial<NewsArticle>) => Promise<void>;
+  deleteArticle: (id: string) => Promise<void>;
+  publishArticle: (id: string) => Promise<void>;
+  unpublishArticle: (id: string) => Promise<void>;
+
+  // Site Settings
+  siteSettings: SiteSettings;
+  updateSiteSettings: (settings: Partial<SiteSettings>) => Promise<void>;
+
+  // Analytics
+  analytics: Analytics;
+
+  // Activity Log
+  activityLog: ActivityLogEntry[];
+  addActivityLog: (entry: any) => void;
+  isActivityLogLoading: boolean;
+
+  // Comments (for moderation)
+  comments: Comment[];
+  isCommentsLoading: boolean;
+  approveComment: (id: Id<"comments">) => Promise<void>;
+  rejectComment: (id: Id<"comments">) => Promise<void>;
+  deleteComment: (id: Id<"comments">) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  USERS: 'pdp_admin_users',
-  ARTICLES: 'pdp_admin_articles',
-  CURRENT_USER: 'pdp_current_user',
-  SITE_SETTINGS: 'pdp_site_settings',
-  ANALYTICS: 'pdp_analytics',
-  ACTIVITY_LOG: 'pdp_activity_log',
-  COMMENTS: 'pdp_comments'
-};
-
+// Default settings for fallback
 const defaultSiteSettings: SiteSettings = {
   siteName: 'PDP Diario Digital',
   siteDescription: 'Tu fuente confiable de información',
@@ -126,445 +205,378 @@ const defaultSiteSettings: SiteSettings = {
 };
 
 const defaultAnalytics: Analytics = {
-  totalViews: 45230,
-  totalArticles: 156,
-  totalUsers: 5,
-  publishedToday: 3,
-  viewsToday: 1250,
-  viewsThisWeek: 8400,
-  viewsThisMonth: 28750,
+  totalViews: 0,
+  totalArticles: 0,
+  totalUsers: 0,
+  publishedToday: 0,
+  viewsToday: 0,
+  viewsThisWeek: 0,
+  viewsThisMonth: 0,
+  viewsLastMonth: 0,
+  monthlyViewGrowth: null,
   topArticles: [],
-  viewsBySection: {
-    politica: 12500,
-    economia: 10200,
-    internacional: 8900,
-    local: 7600,
-    opinion: 4030
+  viewsBySection: {},
+  viewsByDay: [],
+  readerDistribution: {
+    guest: 0,
+    registered: 0,
+    total: 0,
+    sampleSize: 0,
+    windowDays: 30,
   },
-  viewsByDay: []
+  readingTime: {
+    averageSeconds: null,
+    medianSeconds: null,
+    p90Seconds: null,
+    completionRate: null,
+    sampleSize: 0,
+    windowDays: 30,
+  },
+  shareMetrics: {
+    totalShares: 0,
+    shareRate: null,
+    sampleSize: 0,
+    windowDays: 30,
+    channels: [],
+  },
+  viewsAreEstimated: false
 };
 
-// Initial mock users with passwords
-const initialUsers: (User & { password: string })[] = [
-  {
-    id: '1',
-    name: 'Juan Pérez',
-    email: 'juan@pdp.com',
-    password: 'admin123',
-    role: 'admin',
-    createdAt: '2024-01-15',
-    lastLogin: new Date().toISOString(),
-    articlesPublished: 45
-  },
-  {
-    id: '2',
-    name: 'María González',
-    email: 'maria@pdp.com',
-    password: 'admin123',
-    role: 'editor',
-    createdAt: '2024-02-20',
-    lastLogin: '2025-10-20',
-    articlesPublished: 32
-  },
-  {
-    id: '3',
-    name: 'Ana Martínez',
-    email: 'ana@pdp.com',
-    password: 'admin123',
-    role: 'lector',
-    createdAt: '2024-04-05',
-    lastLogin: '2025-10-21'
-  }
-];
-
-const initialComments: Comment[] = [
-  {
-    id: '1',
-    articleId: '1',
-    articleTitle: 'Crisis política: Nuevas medidas económicas generan debate',
-    author: 'Pedro Gómez',
-    email: 'pedro@email.com',
-    content: 'Excelente análisis de la situación actual. Es importante que se discutan estas medidas.',
-    date: '2025-10-21T10:30:00',
-    status: 'pending'
-  },
-  {
-    id: '2',
-    articleId: '1',
-    articleTitle: 'Crisis política: Nuevas medidas económicas generan debate',
-    author: 'Laura Silva',
-    email: 'laura@email.com',
-    content: 'No estoy de acuerdo con las medidas propuestas. Creo que van a afectar negativamente.',
-    date: '2025-10-21T11:15:00',
-    status: 'pending'
-  },
-  {
-    id: '3',
-    articleId: '2',
-    articleTitle: 'Cumbre internacional aborda el cambio climático',
-    author: 'Miguel Torres',
-    email: 'miguel@email.com',
-    content: 'Es urgente que se tomen medidas reales contra el cambio climático.',
-    date: '2025-10-21T09:45:00',
-    status: 'approved'
-  }
-];
-
 export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Convex Hooks
+  const convexUsers = useQuery(api.users.getAll);
+  const convexArticles = useQuery(api.articles.getAll);
+  const convexComments = useQuery(api.comments.getAll);
+  const convexActivityLogs = useQuery(api.activity_logs.getLogs);
+  const analyticsStats = useQuery(api.analytics.getDashboardStats);
+
+  const loginMutation = useMutation(api.users.login);
+  const createUserMutation = useMutation(api.users.createUser);
+  const updateUserMutation = useMutation(api.users.update);
+  const deleteUserMutation = useMutation(api.users.remove);
+
+  const createArticleMutation = useMutation(api.articles.create);
+  const updateArticleMutation = useMutation(api.articles.update);
+  const deleteArticleMutation = useMutation(api.articles.remove);
+
+  const moderateCommentMutation = useMutation(api.comments.moderate);
+  const deleteCommentMutation = useMutation(api.comments.remove);
+
+  // Local State for Session
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<(User & { password: string })[]>([]);
-  const [articles, setArticles] = useState<NewsArticle[]>([]);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSiteSettings);
-  const [analytics, setAnalytics] = useState<Analytics>(defaultAnalytics);
-  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [userCreationStatus, setUserCreationStatus] = useState<AsyncStatus>('idle');
+  const [userCreationError, setUserCreationError] = useState<string | null>(null);
 
-  // Initialize data from localStorage
+  // Restore session
   useEffect(() => {
-    // Load current user
-    const savedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
+    const restoreSession = () => {
+      try {
+        const savedUser = localStorage.getItem('pdp_current_user');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser) as User;
+          setCurrentUser(parsedUser);
+        }
+      } catch (error) {
+        console.error('Failed to restore admin session', error);
+        localStorage.removeItem('pdp_current_user');
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
 
-    // Load users or initialize with default
-    const savedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      setUsers(initialUsers);
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(initialUsers));
-    }
-
-    // Load articles or initialize with default
-    const savedArticles = localStorage.getItem(STORAGE_KEYS.ARTICLES);
-    if (savedArticles) {
-      setArticles(JSON.parse(savedArticles));
-    } else {
-      setArticles(initialNewsArticles);
-      localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(initialNewsArticles));
-    }
-
-    // Load site settings
-    const savedSettings = localStorage.getItem(STORAGE_KEYS.SITE_SETTINGS);
-    if (savedSettings) {
-      setSiteSettings(JSON.parse(savedSettings));
-    } else {
-      localStorage.setItem(STORAGE_KEYS.SITE_SETTINGS, JSON.stringify(defaultSiteSettings));
-    }
-
-    // Load analytics
-    const savedAnalytics = localStorage.getItem(STORAGE_KEYS.ANALYTICS);
-    if (savedAnalytics) {
-      setAnalytics(JSON.parse(savedAnalytics));
-    } else {
-      localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(defaultAnalytics));
-    }
-
-    // Load activity log
-    const savedLog = localStorage.getItem(STORAGE_KEYS.ACTIVITY_LOG);
-    if (savedLog) {
-      setActivityLog(JSON.parse(savedLog));
-    }
-
-    // Load comments
-    const savedComments = localStorage.getItem(STORAGE_KEYS.COMMENTS);
-    if (savedComments) {
-      setComments(JSON.parse(savedComments));
-    } else {
-      localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(initialComments));
-    }
+    restoreSession();
   }, []);
 
-  // Persist users to localStorage
-  useEffect(() => {
-    if (users.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-    }
-  }, [users]);
+  // Adapters
+  const users: User[] = useMemo(() => {
+    return (convexUsers ?? []).map(({ password: _password, ...user }) => ({
+      ...user,
+      id: user._id,
+    }));
+  }, [convexUsers]);
 
-  // Persist articles to localStorage and notify
-  useEffect(() => {
-    if (articles.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(articles));
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new Event('articles-updated'));
-    }
-  }, [articles]);
+  const articles: NewsArticle[] = useMemo(() => {
+    return (convexArticles ?? []).filter((a): a is NonNullable<typeof a> => a !== null).map(a => ({ ...a, id: a._id }));
+  }, [convexArticles]);
 
-  // Persist site settings
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SITE_SETTINGS, JSON.stringify(siteSettings));
-  }, [siteSettings]);
-
-  // Persist analytics
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(analytics));
-  }, [analytics]);
-
-  // Persist activity log
-  useEffect(() => {
-    if (activityLog.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOG, JSON.stringify(activityLog));
-    }
-  }, [activityLog]);
-
-  // Persist comments
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
-  }, [comments]);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    const user = users.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-      const { password: _, ...userWithoutPassword } = user;
-      const updatedUser = {
-        ...userWithoutPassword,
-        lastLogin: new Date().toISOString()
+  const comments: Comment[] = useMemo(() => {
+    if (!convexComments) return [];
+    return convexComments.map(c => {
+      const article = articles.find(a => a.id === c.articleId);
+      return {
+        ...c,
+        id: c._id,
+        articleTitle: article?.title || 'Unknown Article',
+        status: c.status as 'pending' | 'approved' | 'rejected',
       };
-      
-      setCurrentUser(updatedUser);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updatedUser));
-      
-      // Update user's last login
-      setUsers(prev => prev.map(u => 
-        u.id === user.id ? { ...u, lastLogin: updatedUser.lastLogin } : u
-      ));
+    });
+  }, [convexComments, articles]);
 
-      // Add activity log
-      addActivityLog({
-        userId: user.id,
-        userName: user.name,
-        action: 'Inicio de sesión',
-        details: `${user.name} inició sesión en el sistema`,
-        type: 'user'
-      });
-      
-      return true;
+  const isCommentsLoading = convexComments === undefined;
+
+  const activityLog: ActivityLogEntry[] = useMemo(() => {
+    if (!convexActivityLogs) return [];
+
+    return convexActivityLogs.map(log => {
+      const type: ActivityLogEntry['type'] = log.action.startsWith('article')
+        ? 'article'
+        : log.action.startsWith('user')
+          ? 'user'
+          : log.action.startsWith('comment')
+            ? 'comment'
+            : 'settings';
+
+      const matchedUser = users.find(user => user._id === log.userId);
+
+      return {
+        id: log._id,
+        action: log.action,
+        details: log.details,
+        timestamp: log.timestamp,
+        userId: log.userId ?? undefined,
+        userName: matchedUser?.name ?? (log.userId ?? 'Sistema'),
+        type,
+      };
+    });
+  }, [convexActivityLogs, users]);
+
+  const isActivityLogLoading = convexActivityLogs === undefined;
+
+  const analytics = useMemo<Analytics>(() => {
+    if (analyticsStats) {
+      return analyticsStats;
     }
-    
-    return false;
+
+    const aggregatedViews = articles.reduce((sum, article) => sum + (article.views ?? 0), 0);
+
+    return {
+      ...defaultAnalytics,
+      totalArticles: articles.length,
+      totalUsers: users.length,
+      totalViews: aggregatedViews,
+    };
+  }, [analyticsStats, articles, users]);
+
+  // Auth Functions
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setIsAuthLoading(true);
+    try {
+      const user = await loginMutation({ email: email.trim().toLowerCase(), password });
+      if (user) {
+        const userObj = { ...user, id: user._id } as User;
+        setCurrentUser(userObj);
+        localStorage.setItem('pdp_current_user', JSON.stringify(userObj));
+        return true;
+      }
+      return false;
+    } finally {
+      setIsAuthLoading(false);
+    }
   };
 
   const logout = () => {
-    if (currentUser) {
-      addActivityLog({
-        userId: currentUser.id,
-        userName: currentUser.name,
-        action: 'Cierre de sesión',
-        details: `${currentUser.name} cerró sesión`,
-        type: 'user'
-      });
-    }
-    
     setCurrentUser(null);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    localStorage.removeItem('pdp_current_user');
+    setIsAuthLoading(false);
   };
 
-  const addUser = (userData: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => {
-    const newUser = {
-      ...userData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      password: 'changeme123' // Default password
-    };
-    
-    setUsers(prev => [...prev, newUser]);
-    
-    addActivityLog({
-      userId: currentUser?.id || '',
-      userName: currentUser?.name || 'Sistema',
-      action: 'Usuario creado',
-      details: `Se creó el usuario ${userData.name} (${userData.email})`,
-      type: 'user'
+  // User Functions
+  const addUser = async (userData: CreateUserInput) => {
+    setUserCreationStatus('loading');
+    setUserCreationError(null);
+    try {
+      const userId = await createUserMutation(userData);
+      setUserCreationStatus('success');
+      return userId;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error al crear el usuario';
+      setUserCreationStatus('error');
+      setUserCreationError(message);
+      throw error instanceof Error ? error : new Error(message);
+    }
+  };
+
+  const updateUser = async (id: string, updates: Partial<User> & { password?: string }) => {
+    const {
+      _id: _ignoreConvexId,
+      id: _ignoreLegacyId,
+      createdAt: _ignoreCreatedAt,
+      lastLogin: _ignoreLastLogin,
+      ...rest
+    } = updates as Record<string, unknown>;
+
+    const payload: {
+      name?: string;
+      role?: User['role'];
+      email?: string;
+      password?: string;
+    } = {};
+
+    if (rest.name !== undefined) {
+      payload.name = rest.name as string;
+    }
+
+    if (rest.role !== undefined) {
+      payload.role = rest.role as User['role'];
+    }
+
+    if (rest.email !== undefined) {
+      payload.email = rest.email as string;
+    }
+
+    if (rest.password !== undefined) {
+      payload.password = rest.password as string;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return;
+    }
+
+    await updateUserMutation({ id: id as Id<"users">, ...payload });
+  };
+
+  const deleteUser = async (id: string) => {
+    await deleteUserMutation({ id: id as Id<"users"> });
+  };
+
+  // Keep the session user in sync with backend updates
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    if (!convexUsers) {
+      return;
+    }
+
+    const latestRecord = convexUsers.find((user) => user._id === currentUser._id);
+
+    if (!latestRecord) {
+      setCurrentUser(null);
+      localStorage.removeItem('pdp_current_user');
+      return;
+    }
+
+    const { password: _password, ...latestWithoutPassword } = latestRecord;
+    const syncedUser = {
+      ...latestWithoutPassword,
+      id: latestRecord._id,
+    } as User;
+
+    const hasDifference =
+      currentUser.name !== syncedUser.name ||
+      currentUser.email !== syncedUser.email ||
+      currentUser.role !== syncedUser.role ||
+      currentUser.lastLogin !== syncedUser.lastLogin;
+
+    if (hasDifference) {
+      setCurrentUser(syncedUser);
+      localStorage.setItem('pdp_current_user', JSON.stringify(syncedUser));
+    }
+  }, [convexUsers, currentUser]);
+
+  // Article Functions
+  const addArticle = async (articleData: any) => {
+    await createArticleMutation(articleData);
+  };
+
+  const updateArticle = async (id: string, updates: Partial<NewsArticle>) => {
+    const { _id, id: _, ...cleanUpdates } = updates as any;
+    await updateArticleMutation({ id: id as Id<"articles">, ...cleanUpdates });
+  };
+
+  const deleteArticle = async (id: string) => {
+    await deleteArticleMutation({ id: id as Id<"articles"> });
+  };
+
+  const publishArticle = async (id: string) => {
+    await updateArticleMutation({
+      id: id as Id<"articles">,
+      featured: true,
+      publishDate: new Date().toISOString(),
+      status: 'published',
+      source: 'internal'
     });
   };
 
-  const updateUser = (id: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(user => 
-      user.id === id ? { ...user, ...updates } : user
-    ));
-    
-    const user = users.find(u => u.id === id);
-    if (user) {
-      addActivityLog({
-        userId: currentUser?.id || '',
-        userName: currentUser?.name || 'Sistema',
-        action: 'Usuario actualizado',
-        details: `Se actualizó el usuario ${user.name}`,
-        type: 'user'
-      });
-    }
-  };
-
-  const deleteUser = (id: string) => {
-    const user = users.find(u => u.id === id);
-    setUsers(prev => prev.filter(user => user.id !== id));
-    
-    if (user) {
-      addActivityLog({
-        userId: currentUser?.id || '',
-        userName: currentUser?.name || 'Sistema',
-        action: 'Usuario eliminado',
-        details: `Se eliminó el usuario ${user.name}`,
-        type: 'user'
-      });
-    }
-  };
-
-  const addArticle = (articleData: Omit<NewsArticle, 'id'>) => {
-    const newArticle: NewsArticle = {
-      ...articleData,
-      id: Date.now().toString(),
-      date: new Date().toISOString()
-    };
-    
-    setArticles(prev => [...prev, newArticle]);
-    
-    // Update analytics
-    setAnalytics(prev => ({
-      ...prev,
-      totalArticles: prev.totalArticles + 1,
-      publishedToday: prev.publishedToday + 1
-    }));
-    
-    addActivityLog({
-      userId: currentUser?.id || '',
-      userName: currentUser?.name || 'Sistema',
-      action: 'Artículo creado',
-      details: `Se creó el artículo "${articleData.title}"`,
-      type: 'article'
+  const unpublishArticle = async (id: string) => {
+    await updateArticleMutation({
+      id: id as Id<"articles">,
+      featured: false,
+      status: 'draft'
     });
   };
 
-  const updateArticle = (id: string, updates: Partial<NewsArticle>) => {
-    setArticles(prev => prev.map(article => 
-      article.id === id ? { ...article, ...updates } : article
-    ));
-    
-    const article = articles.find(a => a.id === id);
-    if (article) {
-      addActivityLog({
-        userId: currentUser?.id || '',
-        userName: currentUser?.name || 'Sistema',
-        action: 'Artículo actualizado',
-        details: `Se actualizó el artículo "${article.title}"`,
-        type: 'article'
-      });
-    }
+  // Comment Functions
+  const approveComment = async (id: Id<"comments">) => {
+    await moderateCommentMutation({ id, status: "approved" });
   };
 
-  const deleteArticle = (id: string) => {
-    const article = articles.find(a => a.id === id);
-    setArticles(prev => prev.filter(article => article.id !== id));
-    
-    // Update analytics
-    setAnalytics(prev => ({
-      ...prev,
-      totalArticles: Math.max(0, prev.totalArticles - 1)
-    }));
-    
-    if (article) {
-      addActivityLog({
-        userId: currentUser?.id || '',
-        userName: currentUser?.name || 'Sistema',
-        action: 'Artículo eliminado',
-        details: `Se eliminó el artículo "${article.title}"`,
-        type: 'article'
-      });
-    }
+  const rejectComment = async (id: Id<"comments">) => {
+    await moderateCommentMutation({ id, status: "rejected" });
   };
 
-  const publishArticle = (id: string) => {
-    updateArticle(id, { featured: true, publishDate: new Date().toISOString() });
+  const deleteComment = async (id: Id<"comments">) => {
+    await deleteCommentMutation({ id });
   };
 
-  const unpublishArticle = (id: string) => {
-    updateArticle(id, { featured: false });
-  };
+  // Settings
+  const convexSettings = useQuery(api.settings.get);
+  const updateSettingsMutation = useMutation(api.settings.update);
 
-  const updateSiteSettings = (updates: Partial<SiteSettings>) => {
-    setSiteSettings(prev => ({ ...prev, ...updates }));
-    
-    addActivityLog({
-      userId: currentUser?.id || '',
-      userName: currentUser?.name || 'Sistema',
-      action: 'Configuración actualizada',
-      details: 'Se actualizaron las configuraciones del sitio',
-      type: 'settings'
+  const siteSettings = convexSettings ? { ...defaultSiteSettings, ...convexSettings } : defaultSiteSettings;
+
+  const updateSiteSettings = async (updates: Partial<SiteSettings>) => {
+    // Optimistic update or just wait for re-fetch
+    // We need to pass ALL settings to the mutation because it expects them, 
+    // or we should update the mutation to accept partials.
+    // The current mutation in convex/settings.ts expects ALL fields.
+    // Let's assume we pass the merged object.
+    const newSettings = { ...siteSettings, ...updates };
+
+    // We need to map the interface to the args expected by the mutation
+    // The mutation args match the SiteSettings interface mostly.
+    // We need to ensure we don't pass extra fields if any.
+    await updateSettingsMutation({
+      siteName: newSettings.siteName,
+      siteDescription: newSettings.siteDescription,
+      contactEmail: newSettings.contactEmail,
+      primaryColor: newSettings.primaryColor,
+      secondaryColor: newSettings.secondaryColor,
+      facebookUrl: newSettings.facebookUrl,
+      twitterUrl: newSettings.twitterUrl,
+      instagramUrl: newSettings.instagramUrl,
+      youtubeUrl: newSettings.youtubeUrl,
+      enableComments: newSettings.enableComments,
+      moderateComments: newSettings.moderateComments,
+      enableNewsletter: newSettings.enableNewsletter,
     });
   };
 
-  const addActivityLog = (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => {
-    const newEntry: ActivityLogEntry = {
-      ...entry,
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString()
-    };
-    
-    setActivityLog(prev => [newEntry, ...prev].slice(0, 100)); // Keep last 100 entries
+  const addActivityLog = (entry: any) => {
+    // In real app, push to Convex
+    console.log("Log:", entry);
   };
 
-  const approveComment = (id: string) => {
-    setComments(prev => prev.map(comment =>
-      comment.id === id ? { ...comment, status: 'approved' as const } : comment
-    ));
-    
-    const comment = comments.find(c => c.id === id);
-    if (comment) {
-      addActivityLog({
-        userId: currentUser?.id || '',
-        userName: currentUser?.name || 'Sistema',
-        action: 'Comentario aprobado',
-        details: `Se aprobó un comentario en "${comment.articleTitle}"`,
-        type: 'comment'
-      });
-    }
-  };
-
-  const rejectComment = (id: string) => {
-    setComments(prev => prev.map(comment =>
-      comment.id === id ? { ...comment, status: 'rejected' as const } : comment
-    ));
-    
-    const comment = comments.find(c => c.id === id);
-    if (comment) {
-      addActivityLog({
-        userId: currentUser?.id || '',
-        userName: currentUser?.name || 'Sistema',
-        action: 'Comentario rechazado',
-        details: `Se rechazó un comentario en "${comment.articleTitle}"`,
-        type: 'comment'
-      });
-    }
-  };
-
-  const deleteComment = (id: string) => {
-    const comment = comments.find(c => c.id === id);
-    setComments(prev => prev.filter(c => c.id !== id));
-    
-    if (comment) {
-      addActivityLog({
-        userId: currentUser?.id || '',
-        userName: currentUser?.name || 'Sistema',
-        action: 'Comentario eliminado',
-        details: `Se eliminó un comentario en "${comment.articleTitle}"`,
-        type: 'comment'
-      });
-    }
+  const resetUserCreationStatus = () => {
+    setUserCreationStatus('idle');
+    setUserCreationError(null);
   };
 
   const value: AdminContextType = {
     currentUser,
     isAuthenticated: !!currentUser,
+    isAuthLoading,
     login,
     logout,
-    users: users.map(({ password, ...user }) => user),
+    users,
     addUser,
     updateUser,
     deleteUser,
+    userCreationStatus,
+    userCreationError,
+    resetUserCreationStatus,
     articles,
     addArticle,
     updateArticle,
@@ -576,7 +588,9 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     analytics,
     activityLog,
     addActivityLog,
+    isActivityLogLoading,
     comments,
+    isCommentsLoading,
     approveComment,
     rejectComment,
     deleteComment

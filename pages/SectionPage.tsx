@@ -1,9 +1,10 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import { useQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { SectionType } from '../components/SectionTag';
 import { NewsCard } from '../components/NewsCard';
 import { SectionHeader } from '../components/SectionHeader';
-import { useArticles } from '../hooks/useArticles';
 import { ArrowLeft } from 'lucide-react';
 
 const sectionTitles: Record<SectionType, string> = {
@@ -18,11 +19,13 @@ const sectionTitles: Record<SectionType, string> = {
 export const SectionPage: React.FC = () => {
   const location = useLocation();
   const section = location.pathname.replace('/', '') as SectionType;
-  const allArticles = useArticles();
-  const articles = allArticles.filter(a => a.section === section);
-  
+
+  // Fetch articles for this section from Convex
+  const articlesRaw = useQuery(api.articles.getPublic, { section: section });
+  const articles = (articlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
+
   const featuredArticle = articles.find(a => a.featured) || articles[0];
-  const otherArticles = articles.filter(a => a.id !== featuredArticle?.id);
+  const otherArticles = articles.filter(a => a._id !== featuredArticle?._id);
 
   if (!section || !sectionTitles[section]) {
     return (
@@ -30,7 +33,7 @@ export const SectionPage: React.FC = () => {
         <h1 className="mb-4" style={{ fontSize: '32px', fontWeight: 700 }}>
           Sección no encontrada
         </h1>
-        <Link 
+        <Link
           to="/"
           className="inline-flex items-center gap-2 hover:text-[var(--color-brand-primary)] transition-colors"
           style={{ fontSize: '16px', fontWeight: 500 }}
@@ -46,7 +49,7 @@ export const SectionPage: React.FC = () => {
     <div className="min-h-screen bg-white">
       {/* Breadcrumb */}
       <div className="container mx-auto px-4 py-6">
-        <Link 
+        <Link
           to="/"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-[var(--color-brand-primary)] transition-colors"
           style={{ fontSize: '14px', fontWeight: 500 }}
@@ -58,9 +61,9 @@ export const SectionPage: React.FC = () => {
 
       {/* Section Header */}
       <div className="container mx-auto px-5 md:px-10 lg:px-[60px] mb-8 md:mb-12">
-        <SectionHeader 
-          title={sectionTitles[section]} 
-          section={section} 
+        <SectionHeader
+          title={sectionTitles[section]}
+          section={section}
           showLink={false}
         />
       </div>
@@ -68,11 +71,11 @@ export const SectionPage: React.FC = () => {
       {/* Featured Article */}
       {featuredArticle && (
         <div className="container mx-auto px-5 md:px-10 lg:px-[60px] mb-10 md:mb-14">
-          <Link to={`/noticia/${featuredArticle.id}`}>
+          <Link to={`/noticia/${featuredArticle._id}`}>
             <NewsCard
-              variant="hero"
+              variant="featured"
               title={featuredArticle.title}
-              section={featuredArticle.section}
+              section={featuredArticle.section as SectionType}
               imageUrl={featuredArticle.imageUrl}
               description={featuredArticle.description}
             />
@@ -85,11 +88,11 @@ export const SectionPage: React.FC = () => {
         <div className="container mx-auto px-5 md:px-10 lg:px-[60px] pb-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {otherArticles.map((article) => (
-              <Link key={article.id} to={`/noticia/${article.id}`}>
+              <Link key={article._id} to={`/noticia/${article._id}`}>
                 <NewsCard
                   variant="standard"
                   title={article.title}
-                  section={article.section}
+                  section={article.section as SectionType}
                   imageUrl={article.imageUrl}
                   description={article.description}
                 />

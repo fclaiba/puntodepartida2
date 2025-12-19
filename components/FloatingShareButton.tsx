@@ -6,12 +6,14 @@ interface FloatingShareButtonProps {
   onInstagramClick: () => void;
   articleTitle: string;
   articleUrl: string;
+  onShare?: (event: { platform: string; surface: 'floating'; action?: string }) => void;
 }
 
 export const FloatingShareButton: React.FC<FloatingShareButtonProps> = ({
   onInstagramClick,
   articleTitle,
-  articleUrl
+  articleUrl,
+  onShare
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -31,18 +33,25 @@ export const FloatingShareButton: React.FC<FloatingShareButtonProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const emitShare = (platform: string, action?: string) => {
+    onShare?.({ platform, surface: 'floating', action });
+  };
+
   const shareOnFacebook = () => {
+    emitShare('facebook', 'click');
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`, '_blank');
     setIsExpanded(false);
   };
 
   const shareOnTwitter = () => {
+    emitShare('twitter', 'click');
     window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(articleUrl)}&text=${encodeURIComponent(articleTitle)}`, '_blank');
     setIsExpanded(false);
   };
 
   const copyLink = () => {
     navigator.clipboard.writeText(articleUrl);
+    emitShare('copy_link', 'copy');
     alert('¡Link copiado al portapapeles!');
     setIsExpanded(false);
   };
@@ -70,6 +79,7 @@ export const FloatingShareButton: React.FC<FloatingShareButtonProps> = ({
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => {
+                    emitShare('instagram', 'open');
                     onInstagramClick();
                     setIsExpanded(false);
                   }}

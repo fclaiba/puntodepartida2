@@ -3,13 +3,14 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/globals.css';
 import { ThemeProvider } from 'next-themes';
+import { ConvexClientProvider } from './components/ConvexClientProvider';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-      <App />
-    </ThemeProvider>
+    <ConvexClientProvider>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <App />
+      </ThemeProvider>
+    </ConvexClientProvider>
   </React.StrictMode>
 );
-
-
