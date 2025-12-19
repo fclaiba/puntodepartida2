@@ -26,7 +26,7 @@ const injectCanvasStyles = () => {
   if (existingStyle) {
     existingStyle.remove();
   }
-  
+
   const style = document.createElement('style');
   style.id = styleId;
   // Override all CSS variables that might be inherited with safe values
@@ -63,7 +63,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<StoryTemplate>('gradient');
 
-  const articleUrl = `${window.location.origin}/noticia/${article.id}`;
+  const articleUrl = `${window.location.origin}/#/noticia/${article.id}`;
 
   useEffect(() => {
     if (isOpen) {
@@ -75,7 +75,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
     if (!storyRef.current) return;
 
     setIsGenerating(true);
-    
+
     try {
       // Preload image
       const img = new Image();
@@ -88,7 +88,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
 
       // Wait a bit more for fonts to load
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       const canvas = await html2canvas(storyRef.current, {
         width: 1080,
         height: 1920,
@@ -184,7 +184,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
           await (navigator as any).share({
             title: article.title,
             text: `Lee esta noticia en PDP: ${article.title}`,
-            url: `${window.location.origin}/noticia/${article.id}`,
+            url: `${window.location.origin}/#/noticia/${article.id}`,
             files: [file],
           });
         } else {
@@ -240,7 +240,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
             await (navigator as any).share({
               title: article.title,
               text: `Lee esta noticia en PDP: ${article.title}`,
-              url: `${window.location.origin}/noticia/${article.id}`,
+              url: `${window.location.origin}/#/noticia/${article.id}`,
               files: [file],
             });
           } else {
@@ -341,7 +341,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div 
+              <div
                 className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl z-10"
               >
                 <div>
@@ -372,9 +372,9 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                     />
 
                     <div style={{ marginBottom: '24px' }}>
-                      <div 
-                        style={{ 
-                          width: '270px', 
+                      <div
+                        style={{
+                          width: '270px',
                           height: '480px',
                           transform: 'scale(1)',
                           margin: '0 auto',
@@ -383,12 +383,12 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                         }}
                       >
-                        <div 
+                        <div
                           ref={storyRef}
                           data-story-canvas
-                          style={{ 
+                          style={{
                             position: 'relative',
-                            width: '1080px', 
+                            width: '1080px',
                             height: '1920px',
                             transform: 'scale(0.25)',
                             transformOrigin: 'top left',
@@ -396,13 +396,13 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                           }}
                         >
                           {/* Story Background */}
-                          <div style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            position: 'relative' 
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            position: 'relative'
                           }}>
                             {/* Top gradient overlay */}
-                            <div 
+                            <div
                               style={{
                                 position: 'absolute',
                                 top: 0,
@@ -413,20 +413,20 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                 background: templateStyles.overlayGradient
                               }}
                             />
-                            
+
                             {/* Background Image */}
                             <img
                               src={article.imageUrl}
                               alt={article.title}
-                              style={{ 
-                                width: '100%', 
-                                height: '100%', 
-                                objectFit: 'cover' 
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
                               }}
                             />
 
                             {/* Content Overlay - Respeta áreas seguras de Instagram (250px arriba/abajo) */}
-                            <div style={{ 
+                            <div style={{
                               position: 'absolute',
                               top: 0,
                               left: 0,
@@ -443,8 +443,8 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                             }}>
                               {/* Top Section - Zona segura superior */}
                               <div>
-                                <div 
-                                  style={{ 
+                                <div
+                                  style={{
                                     display: 'inline-block',
                                     marginBottom: '40px',
                                     paddingLeft: '32px',
@@ -452,13 +452,13 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                     paddingTop: '16px',
                                     paddingBottom: '16px',
                                     borderRadius: '9999px',
-                                    backgroundColor: templateStyles.badgeBackground 
+                                    backgroundColor: templateStyles.badgeBackground
                                   }}
                                 >
-                                  <span 
-                                    style={{ 
-                                      fontSize: '32px', 
-                                      fontWeight: 700, 
+                                  <span
+                                    style={{
+                                      fontSize: '32px',
+                                      fontWeight: 700,
                                       letterSpacing: '0.05em',
                                       color: '#ffffff'
                                     }}
@@ -468,8 +468,8 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                 </div>
 
                                 <div style={{ marginBottom: '24px' }}>
-                                  <div 
-                                    style={{ 
+                                  <div
+                                    style={{
                                       display: 'inline-block',
                                       paddingLeft: '24px',
                                       paddingRight: '24px',
@@ -477,13 +477,13 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                       paddingBottom: '8px',
                                       borderRadius: '9999px',
                                       backgroundColor: getSectionColor(article.section),
-                                      transform: 'scale(2.5)', 
-                                      transformOrigin: 'left' 
+                                      transform: 'scale(2.5)',
+                                      transformOrigin: 'left'
                                     }}
                                   >
-                                    <span 
-                                      style={{ 
-                                        fontSize: '12px', 
+                                    <span
+                                      style={{
+                                        fontSize: '12px',
                                         fontWeight: 600,
                                         color: '#ffffff',
                                         textTransform: 'uppercase',
@@ -498,8 +498,8 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
 
                               {/* Bottom Section - Zona segura inferior */}
                               <div>
-                                <h1 
-                                  style={{ 
+                                <h1
+                                  style={{
                                     marginBottom: '36px',
                                     fontSize: '68px',
                                     fontWeight: 800,
@@ -511,8 +511,8 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                   {article.title}
                                 </h1>
 
-                                <div 
-                                  style={{ 
+                                <div
+                                  style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '24px',
@@ -529,8 +529,8 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                   </span>
                                 </div>
 
-                                <div 
-                                  style={{ 
+                                <div
+                                  style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '24px',
@@ -543,9 +543,9 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                     backdropFilter: 'blur(10px)'
                                   }}
                                 >
-                                  <span 
-                                    style={{ 
-                                      fontSize: '32px', 
+                                  <span
+                                    style={{
+                                      fontSize: '32px',
                                       fontWeight: 600,
                                       color: selectedTemplate === 'minimal' ? '#1f2937' : '#ffffff'
                                     }}
@@ -553,14 +553,14 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                                     Leé la noticia
                                   </span>
                                   {/* Arrow pointing right */}
-                                  <svg 
-                                    width="40" 
-                                    height="40" 
-                                    viewBox="0 0 24 24" 
-                                    fill="none" 
+                                  <svg
+                                    width="40"
+                                    height="40"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
                                     stroke={selectedTemplate === 'minimal' ? '#1f2937' : '#ffffff'}
-                                    strokeWidth="3" 
-                                    strokeLinecap="round" 
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
                                     strokeLinejoin="round"
                                   >
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -579,7 +579,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                       onClick={generateStoryImage}
                       disabled={isGenerating}
                       className="w-full py-4 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                      style={{ 
+                      style={{
                         backgroundColor: '#7c348a',
                         color: 'white',
                         fontSize: '16px',
@@ -588,7 +588,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                     >
                       {isGenerating ? (
                         <>
-                          <div 
+                          <div
                             className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"
                           />
                           Generando...
@@ -601,7 +601,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                       )}
                     </button>
 
-                    <p 
+                    <p
                       className="text-center text-gray-500 mt-4"
                       style={{ fontSize: '13px', lineHeight: '1.5' }}
                     >
@@ -612,19 +612,19 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                   <>
                     {/* Success State */}
                     <div className="text-center mb-6">
-                      <div 
+                      <div
                         className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
                         style={{ backgroundColor: '#22c55e' }}
                       >
                         <Check size={32} className="text-white" />
                       </div>
-                      <h3 
+                      <h3
                         className="mb-2"
                         style={{ fontSize: '18px', fontWeight: 600 }}
                       >
                         ¡Imagen generada con éxito!
                       </h3>
-                      <p 
+                      <p
                         className="text-gray-600"
                         style={{ fontSize: '14px' }}
                       >
@@ -635,7 +635,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                     {/* Preview of generated image */}
                     {generatedImageUrl && (
                       <div className="mb-6">
-                        <img 
+                        <img
                           src={generatedImageUrl}
                           alt="Preview"
                           className="w-full rounded-xl shadow-lg"
@@ -649,7 +649,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                       <button
                         onClick={shareToInstagram}
                         className="w-full py-4 rounded-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
-                        style={{ 
+                        style={{
                           background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)',
                           color: 'white',
                           fontSize: '16px',
@@ -663,7 +663,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                       <button
                         onClick={downloadImage}
                         className="w-full py-4 rounded-xl transition-all hover:scale-[1.02] border-2 flex items-center justify-center gap-3"
-                        style={{ 
+                        style={{
                           borderColor: '#7c348a',
                           color: '#7c348a',
                           fontSize: '16px',
@@ -676,12 +676,12 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                     </div>
 
                     {/* Link to copy */}
-                    <div 
+                    <div
                       className="p-4 rounded-xl"
                       style={{ backgroundColor: '#f9f9f9' }}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span 
+                        <span
                           style={{ fontSize: '12px', fontWeight: 600, color: '#7c348a' }}
                         >
                           ENLACE DE LA NOTICIA
@@ -694,7 +694,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                           Copiar
                         </button>
                       </div>
-                      <p 
+                      <p
                         className="text-gray-600 break-all"
                         style={{ fontSize: '12px' }}
                       >
@@ -702,11 +702,11 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
                       </p>
                     </div>
 
-                    <div 
+                    <div
                       className="mt-4 p-4 rounded-xl"
                       style={{ backgroundColor: '#eff6ff' }}
                     >
-                      <p 
+                      <p
                         style={{ fontSize: '13px', lineHeight: '1.5', color: '#1e40af' }}
                       >
                         <strong>💡 Tip:</strong> Al subir la imagen a Instagram Stories, puedes agregar el enlace usando el sticker de "Link" para que tus seguidores puedan deslizar y leer la noticia completa.
