@@ -15,6 +15,7 @@ import type * as articles from "../articles.js";
 import type * as comments from "../comments.js";
 import type * as lib_tracking from "../lib/tracking.js";
 import type * as lib_trackingSchemas from "../lib/trackingSchemas.js";
+import type * as migrations from "../migrations.js";
 import type * as seed from "../seed.js";
 import type * as seed_data from "../seed_data.js";
 import type * as settings from "../settings.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   "lib/tracking": typeof lib_tracking;
   "lib/trackingSchemas": typeof lib_trackingSchemas;
+  migrations: typeof migrations;
   seed: typeof seed;
   seed_data: typeof seed_data;
   settings: typeof settings;
