@@ -60,7 +60,7 @@ export const NewsTicker: React.FC = () => {
                 return (
                   <Link
                     key={`${article._id}-${index}`}
-                    to={`/noticias/${article.section}/${article._id}`}
+                    to={`/noticia/${article._id}`}
                     className="text-xs md:text-sm font-light hover:underline flex items-center gap-2 opacity-90 hover:opacity-100"
                   >
                     <span className="w-1 h-1 rounded-full bg-[var(--color-brand-secondary)] inline-block" />

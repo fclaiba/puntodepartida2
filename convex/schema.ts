@@ -18,6 +18,7 @@ export default defineSchema({
         description: v.string(),
         content: v.string(),
         author: v.string(),
+        authorBio: v.optional(v.string()),
         date: v.string(), // ISO string
         readTime: v.number(),
         featured: v.boolean(),

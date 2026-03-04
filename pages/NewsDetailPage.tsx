@@ -8,10 +8,13 @@ import { NewsCard } from '../components/NewsCard';
 import { SectionHeader } from '../components/SectionHeader';
 import { InstagramStoryGenerator } from '../components/InstagramStoryGenerator';
 import { FloatingShareButton } from '../components/FloatingShareButton';
-import { ArrowLeft, Clock, Calendar, User, Share2, Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, User, Share2, Facebook, Twitter, Linkedin, Instagram, Link2 } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { CommentSection } from '../components/comments/CommentSection';
 import { useEngagementTracker } from '../hooks/useEngagementTracker';
+import { Tweet } from 'react-tweet';
+import { InstagramEmbed } from 'react-social-media-embed';
+import { ArticleBlock } from './admin/ArticleEditor';
 
 export const NewsDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -208,19 +211,103 @@ export const NewsDetailPage: React.FC = () => {
 
           {/* Article Content */}
           <div className="prose prose-lg max-w-none mb-8 md:mb-12">
-            {article.content.split('\n\n').map((paragraph, index) => (
-              <p
-                key={index}
-                className="mb-6 text-gray-800"
-                style={{
-                  fontSize: '18px',
-                  lineHeight: '1.8',
-                  fontWeight: 300
-                }}
-              >
-                {paragraph}
-              </p>
-            ))}
+            {(() => {
+              try {
+                const parsedBlocks: ArticleBlock[] = JSON.parse(article.content);
+                if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
+                  return parsedBlocks.map((block, index: number) => {
+                    if (!block.content?.trim() && block.type !== 'image') return null;
+
+                    switch (block.type) {
+                      case 'text':
+                        return (
+                          <div
+                            key={block.id || index}
+                            className="prose prose-lg max-w-none mb-6 text-gray-800"
+                            style={{
+                              fontSize: '18px',
+                              lineHeight: '1.8'
+                            }}
+                            dangerouslySetInnerHTML={{ __html: block.content }}
+                          />
+                        );
+
+                      case 'image':
+                        if (!block.content) return null;
+                        return (
+                          <figure key={block.id || index} className="my-10 md:my-14 border rounded-xl p-2 bg-gray-50 border-gray-100">
+                            <img
+                              src={block.content}
+                              alt={block.metadata?.caption || 'Imagen del artículo'}
+                              className="w-full rounded-lg shadow-sm"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                            {block.metadata?.caption && (
+                              <figcaption className="text-center text-sm md:text-base text-gray-600 mt-3 italic">
+                                {block.metadata.caption}
+                              </figcaption>
+                            )}
+                          </figure>
+                        );
+
+                      case 'embed':
+                        if (!block.content) return null;
+                        const isTwitter = block.content.includes('twitter.com') || block.content.includes('x.com');
+                        const isInstagram = block.content.includes('instagram.com');
+
+                        if (isTwitter) {
+                          const tweetMatch = block.content.match(/(?:twitter\.com|x\.com)\/(?:#!\/)?(\w+)\/status(es)?\/(\d+)/);
+                          const tweetId = tweetMatch ? tweetMatch[3] : null;
+
+                          if (tweetId) {
+                            return (
+                              <div key={block.id || index} className="my-10 flex justify-center w-full light">
+                                <Tweet id={tweetId} />
+                              </div>
+                            );
+                          }
+                        }
+
+                        if (isInstagram) {
+                          return (
+                            <div key={block.id || index} className="my-10 flex justify-center w-full">
+                              <InstagramEmbed url={block.content} width={328} />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div key={block.id || index} className="my-10 flex justify-center w-full">
+                            <a href={block.content} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2 text-base font-medium p-4 border border-blue-100 bg-blue-50 rounded-lg">
+                              <Link2 size={20} /> Ver contenido externo
+                            </a>
+                          </div>
+                        );
+
+                      default:
+                        return null;
+                    }
+                  });
+                }
+              } catch (e) {
+                // Fallback for old plain text articles
+              }
+
+              // Fallback return
+              return article.content.split('\n\n').map((paragraph: string, index: number) => (
+                <p
+                  key={index}
+                  className="mb-6 text-gray-800"
+                  style={{
+                    fontSize: '18px',
+                    lineHeight: '1.8',
+                    fontWeight: 300
+                  }}
+                >
+                  {paragraph}
+                </p>
+              ));
+            })()}
           </div>
 
           {/* Share Section */}
@@ -329,7 +416,7 @@ export const NewsDetailPage: React.FC = () => {
                   className="text-white/90"
                   style={{ fontSize: 'clamp(13px, 2vw, 14px)', lineHeight: '1.6' }}
                 >
-                  Periodista especializado en {article.section}. Con más de 10 años de experiencia cubriendo los acontecimientos más importantes del país.
+                  {article.authorBio || `Periodista especializado en ${article.section}. Con más de 10 años de experiencia cubriendo los acontecimientos más importantes del país.`}
                 </p>
               </div>
             </div>

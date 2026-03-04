@@ -32,10 +32,9 @@ describe("TrendingBar", () => {
     useEngagementTrackerMock.mockReset();
 
     useEngagementTrackerMock.mockReturnValue({
-      trackEvent: vi.fn(),
+      trackEvent: trackEventSpy,
       trackShare: vi.fn(),
       userId: "anon-user",
-      sessionId: "session-id",
     });
   });
 
@@ -57,7 +56,6 @@ describe("TrendingBar", () => {
       trackEvent: trackEventSpy,
       trackShare: vi.fn(),
       userId: "anon-user",
-      sessionId: "session-id",
     });
 
     useQueryMock.mockReturnValue([]);
@@ -88,7 +86,6 @@ describe("TrendingBar", () => {
       trackEvent: trackEventSpy,
       trackShare: vi.fn(),
       userId: "anon-user",
-      sessionId: "session-id",
     });
 
     useQueryMock.mockReturnValue([

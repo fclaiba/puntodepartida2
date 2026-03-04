@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { useAdmin, User } from '../../contexts/AdminContext';
 import { ProtectedRoute } from '../../components/admin/ProtectedRoute';
 import { UserRole, getRoleLabel, getRoleColor } from '../../data/adminData';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 const UserManagementContent: React.FC = () => {
   const {
@@ -52,6 +53,7 @@ const UserManagementContent: React.FC = () => {
     role: 'lector' as UserRole,
     password: ''
   });
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; userId: string | null; userName: string }>({ isOpen: false, userId: null, userName: '' });
 
   const [newUserData, setNewUserData] = useState({
     name: '',
@@ -290,20 +292,25 @@ const UserManagementContent: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
+  const confirmDeleteUser = (userId: string, userName: string) => {
     if (userId === currentUser?.id) {
       toast.error('No puedes eliminarte a ti mismo');
       return;
     }
+    setDeleteModal({ isOpen: true, userId, userName });
+  };
 
-    if (window.confirm(`¿Estás seguro de eliminar a ${userName}?`)) {
-      try {
-        await deleteUser(userId);
-        toast.success('Usuario eliminado');
-      } catch (error) {
-        console.error(error);
-        toast.error('No se pudo eliminar el usuario');
-      }
+  const executeDeleteUser = async () => {
+    const uId = deleteModal.userId;
+    if (!uId) return;
+    try {
+      await deleteUser(uId);
+      toast.success('Usuario eliminado');
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo eliminar el usuario');
+    } finally {
+      setDeleteModal({ isOpen: false, userId: null, userName: '' });
     }
   };
 
@@ -327,7 +334,7 @@ const UserManagementContent: React.FC = () => {
           <button
             onClick={openAddModal}
             className="px-6 py-3 rounded-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-2"
-            style={{ 
+            style={{
               backgroundColor: 'var(--color-brand-primary)',
               color: 'white',
               fontSize: '14px',
@@ -342,8 +349,8 @@ const UserManagementContent: React.FC = () => {
         {/* Search */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 mb-6">
           <div className="relative">
-            <Search 
-              size={20} 
+            <Search
+              size={20}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
             <input
@@ -369,7 +376,7 @@ const UserManagementContent: React.FC = () => {
             >
               {/* User Avatar */}
               <div className="flex items-start justify-between mb-4">
-                <div 
+                <div
                   className="w-16 h-16 rounded-full flex items-center justify-center text-white"
                   style={{ backgroundColor: getRoleColor(user.role) }}
                 >
@@ -377,7 +384,7 @@ const UserManagementContent: React.FC = () => {
                     {user.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openEditModal(user)}
@@ -388,7 +395,7 @@ const UserManagementContent: React.FC = () => {
                   </button>
                   {currentUser?.id !== user.id && (
                     <button
-                      onClick={() => handleDeleteUser(user.id, user.name)}
+                      onClick={() => confirmDeleteUser(user.id, user.name)}
                       className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                       title="Eliminar usuario"
                     >
@@ -405,7 +412,7 @@ const UserManagementContent: React.FC = () => {
                   <span className="ml-2 text-xs text-gray-500">(Tú)</span>
                 )}
               </h3>
-              
+
               <div className="flex items-center gap-2 mb-3 text-gray-600">
                 <Mail size={14} />
                 <p className="text-sm truncate">{user.email}</p>
@@ -430,7 +437,7 @@ const UserManagementContent: React.FC = () => {
                   <button
                     onClick={() => setEditingUser(user.id)}
                     className="w-full px-3 py-2 rounded-lg text-white hover:opacity-90 transition-opacity"
-                    style={{ 
+                    style={{
                       backgroundColor: getRoleColor(user.role),
                       fontSize: '14px',
                       fontWeight: 600
@@ -571,7 +578,7 @@ const UserManagementContent: React.FC = () => {
                     onClick={handleAddUser}
                     disabled={isCreatingUser}
                     className="flex-1 px-6 py-3 rounded-lg transition-all hover:scale-[1.02]"
-                    style={{ 
+                    style={{
                       backgroundColor: 'var(--color-brand-primary)',
                       color: 'white',
                       fontSize: '16px',
@@ -822,6 +829,14 @@ const UserManagementContent: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={executeDeleteUser}
+        title="Eliminar Usuario"
+        message={`¿Estás seguro de eliminar a "${deleteModal.userName}"? Esta acción no se puede deshacer.`}
+      />
     </AdminLayout>
   );
 };

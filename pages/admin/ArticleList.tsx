@@ -10,6 +10,7 @@ import { ProtectedRoute } from '../../components/admin/ProtectedRoute';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 const ArticleListContent: React.FC = () => {
   const { currentUser } = useAdmin();
@@ -19,6 +20,7 @@ const ArticleListContent: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState<string>('all');
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: Id<"articles"> | null; title: string }>({ isOpen: false, id: null, title: '' });
 
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -28,15 +30,18 @@ const ArticleListContent: React.FC = () => {
     return matchesSearch && matchesSection;
   });
 
-  const handleDelete = async (id: Id<"articles">, title: string) => {
-    if (window.confirm(`¿Estás seguro de eliminar "${title}"?`)) {
-      try {
-        await deleteArticle({ id });
-        toast.success('Artículo eliminado con éxito');
-      } catch (error) {
-        toast.error('Error al eliminar el artículo');
-        console.error(error);
-      }
+  const confirmDelete = (id: Id<"articles">, title: string) => {
+    setDeleteModal({ isOpen: true, id, title });
+  };
+
+  const executeDelete = async () => {
+    if (!deleteModal.id) return;
+    try {
+      await deleteArticle({ id: deleteModal.id });
+      toast.success('Artículo eliminado con éxito');
+    } catch (error) {
+      toast.error('Error al eliminar el artículo');
+      console.error(error);
     }
   };
 
@@ -262,7 +267,7 @@ const ArticleListContent: React.FC = () => {
                               </Link>
                               {currentUser?.role === 'admin' && (
                                 <button
-                                  onClick={() => handleDelete(article._id, article.title)}
+                                  onClick={() => confirmDelete(article._id, article.title)}
                                   className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                                   title="Eliminar"
                                 >
@@ -281,6 +286,14 @@ const ArticleListContent: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={executeDelete}
+        title="Eliminar Artículo"
+        message={`¿Estás seguro de que deseas eliminar "${deleteModal.title}"? Esta acción no se puede deshacer.`}
+      />
     </AdminLayout>
   );
 };

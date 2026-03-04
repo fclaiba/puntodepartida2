@@ -19,6 +19,7 @@ import {
   PaginationPrevious,
 } from "../../../components/ui/pagination";
 import { cn } from "../../../components/ui/utils";
+import { ConfirmModal } from "../../../components/ui/ConfirmModal";
 
 type Volume = {
   _id: Id<"academic_volumes">;
@@ -51,16 +52,23 @@ const VolumeArticles: React.FC<{
   const articles = useQuery(api.academic.getArticlesByVolume, { volumeId });
   const deleteArticle = useMutation(api.academic.deleteArticle);
 
-  const handleDeleteArticle = async (article: AcademicArticle) => {
-    const confirmed = window.confirm(`¿Eliminar el artículo "${article.title}"?`);
-    if (!confirmed) return;
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; article: AcademicArticle | null }>({ isOpen: false, article: null });
 
+  const confirmDelete = (article: AcademicArticle) => {
+    setDeleteModal({ isOpen: true, article });
+  };
+
+  const executeDeleteArticle = async () => {
+    const art = deleteModal.article;
+    if (!art) return;
     try {
-      await deleteArticle({ id: article._id });
+      await deleteArticle({ id: art._id });
       toast.success("Artículo académico eliminado");
     } catch (error) {
       console.error(error);
       toast.error("No se pudo eliminar el artículo");
+    } finally {
+      setDeleteModal({ isOpen: false, article: null });
     }
   };
 
@@ -135,7 +143,7 @@ const VolumeArticles: React.FC<{
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDeleteArticle(article)}
+                      onClick={() => confirmDelete(article)}
                       className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition"
                     >
                       <Trash2 size={16} />
@@ -148,6 +156,14 @@ const VolumeArticles: React.FC<{
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={executeDeleteArticle}
+        title="Eliminar Artículo Académico"
+        message={`¿Estás seguro de que deseas eliminar el artículo "${deleteModal.article?.title}"? Esta acción no se puede deshacer.`}
+      />
     </motion.div>
   );
 };
@@ -158,6 +174,7 @@ const VolumeListContent: React.FC = () => {
   const { currentUser } = useAdmin();
   const volumes = useQuery(api.academic.getVolumes);
   const deleteVolume = useMutation(api.academic.deleteVolume);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; volume: Volume | null }>({ isOpen: false, volume: null });
 
   const [currentPage, setCurrentPage] = useState<number | null>(null);
   const highlightVolumeId =
@@ -203,19 +220,24 @@ const VolumeListContent: React.FC = () => {
     return volumes.slice(start, end);
   }, [volumes, boundedPage]);
 
-  const handleDeleteVolume = async (volume: Volume) => {
-    const confirmed = window.confirm(`¿Eliminar el volumen "${volume.title}" y todos sus artículos?`);
-    if (!confirmed) return;
+  const confirmDelete = (volume: Volume) => {
+    setDeleteModal({ isOpen: true, volume });
+  };
 
+  const executeDeleteVolume = async () => {
+    const vol = deleteModal.volume;
+    if (!vol) return;
     try {
-      await deleteVolume({ id: volume._id });
+      await deleteVolume({ id: vol._id });
       toast.success("Volumen eliminado correctamente");
-      if (expandedVolumeId === volume._id) {
+      if (expandedVolumeId === vol._id) {
         setExpandedVolumeId(null);
       }
     } catch (error) {
       console.error(error);
       toast.error("No se pudo eliminar el volumen");
+    } finally {
+      setDeleteModal({ isOpen: false, volume: null });
     }
   };
 
@@ -288,6 +310,7 @@ const VolumeListContent: React.FC = () => {
         ) : (
           <div className="space-y-6">
             {paginatedVolumes.map((volume) => {
+              if (!volume) return null;
               const isExpanded = expandedVolumeId === volume._id;
               return (
                 <motion.div
@@ -372,7 +395,7 @@ const VolumeListContent: React.FC = () => {
                               Editar
                             </button>
                             <button
-                              onClick={() => handleDeleteVolume(volume)}
+                              onClick={() => confirmDelete(volume)}
                               className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition"
                             >
                               <Trash2 size={16} />
@@ -446,6 +469,14 @@ const VolumeListContent: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={executeDeleteVolume}
+        title="Eliminar Volumen Completo"
+        message={`¿Estás seguro de eliminar el volumen "${deleteModal.volume?.title}" y TODOS sus artículos asociados? Esta acción no se puede deshacer.`}
+      />
     </AdminLayout>
   );
 };

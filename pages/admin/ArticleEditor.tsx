@@ -11,6 +11,30 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
 import { useConvexUpload } from '../../hooks/useConvexUpload';
+import { GripVertical, Plus, Trash2, Image as ImageIcon, Type, Link2 } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+
+export type ArticleBlockType = 'text' | 'image' | 'embed';
+
+export interface ArticleBlock {
+  id: string;
+  type: ArticleBlockType;
+  content: string; // text content, image URL, or embed URL
+  metadata?: {
+    caption?: string;    // bajada para imágenes
+    format?: 'bold' | 'italic' | 'underline' | 'normal'; // formato actual para texto, simplificado
+  };
+}
+
+const modules = {
+  toolbar: [
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    ['link'],
+    ['clean']
+  ],
+};
 
 const ArticleEditorContent: React.FC = () => {
   const navigate = useNavigate();
@@ -34,16 +58,66 @@ const ArticleEditorContent: React.FC = () => {
     description: '',
     section: 'politica' as NewsSection,
     author: currentUser?.name || '',
+    authorBio: '',
     readTime: 5,
     imageUrl: '',
-    content: '',
+    content: '[]', // We will store the blocks as a JSON string
     featured: false
   });
+
+  const [blocks, setBlocks] = useState<ArticleBlock[]>([
+    { id: crypto.randomUUID(), type: 'text', content: '' }
+  ]);
 
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+
+  // Per-block image upload state
+  const [blockImageModes, setBlockImageModes] = useState<Record<string, 'url' | 'upload'>>({});
+  const [blockUploading, setBlockUploading] = useState<Record<string, boolean>>({});
+  const blockFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const getStorageUrl = useMutation(api.articles.getStorageUrl);
+
+  const handleBlockFileUpload = async (blockId: string, file: File) => {
+    // Client-side validation
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Solo se permiten archivos JPG, PNG o WebP');
+      return;
+    }
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error('El archivo no debe superar los 5MB');
+      return;
+    }
+
+    // Show local preview immediately
+    const localPreviewUrl = URL.createObjectURL(file);
+    setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, content: localPreviewUrl } : b));
+    setBlockUploading(prev => ({ ...prev, [blockId]: true }));
+
+    try {
+      // Upload to Convex storage
+      const storageId = await uploadFile(file);
+      // Get the permanent public URL
+      const publicUrl = await getStorageUrl({ storageId });
+      if (publicUrl) {
+        setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, content: publicUrl } : b));
+      }
+      URL.revokeObjectURL(localPreviewUrl);
+      toast.success('Imagen subida correctamente');
+    } catch (err) {
+      console.error('Error uploading block image:', err);
+      toast.error('Error al subir la imagen');
+      // Revert to empty
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, content: '' } : b));
+      URL.revokeObjectURL(localPreviewUrl);
+    } finally {
+      setBlockUploading(prev => ({ ...prev, [blockId]: false }));
+    }
+  };
 
   useEffect(() => {
     if (isEditing && article) {
@@ -52,12 +126,35 @@ const ArticleEditorContent: React.FC = () => {
         description: article.description || '',
         section: article.section as NewsSection,
         author: article.author,
+        authorBio: article.authorBio || '',
         readTime: article.readTime,
         imageUrl: article.imageUrl,
         content: article.content,
         featured: article.featured || false
       });
       setPreviewUrl(article.imageUrl);
+
+      // Parse blocks
+      try {
+        const parsedBlocks = JSON.parse(article.content);
+        if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
+          setBlocks(parsedBlocks);
+          // Set image blocks with existing URLs to "url" mode
+          const modes: Record<string, 'url' | 'upload'> = {};
+          parsedBlocks.forEach((b: ArticleBlock) => {
+            if (b.type === 'image' && b.content) {
+              modes[b.id] = 'url';
+            }
+          });
+          setBlockImageModes(modes);
+        } else {
+          // Fallback if content was not blocks
+          setBlocks([{ id: crypto.randomUUID(), type: 'text', content: article.content }]);
+        }
+      } catch (e) {
+        // Fallback if plain text
+        setBlocks([{ id: crypto.randomUUID(), type: 'text', content: article.content }]);
+      }
       if (article.storageId) {
         setImageSource('upload');
       }
@@ -118,8 +215,8 @@ const ArticleEditorContent: React.FC = () => {
 
     const trimmedTitle = formData.title.trim();
     const trimmedDescription = formData.description.trim();
-    const trimmedContent = formData.content.trim();
     const trimmedAuthor = formData.author.trim();
+    const trimmedAuthorBio = formData.authorBio.trim();
     const trimmedImageUrl = formData.imageUrl.trim();
 
     if (!trimmedTitle) {
@@ -138,10 +235,32 @@ const ArticleEditorContent: React.FC = () => {
       toast.error('Debes subir una imagen');
       return;
     }
-    if (!trimmedContent) {
-      toast.error('El contenido es obligatorio');
+
+    // Check if any block images are still uploading
+    const stillUploading = Object.values(blockUploading).some(v => v);
+    if (stillUploading) {
+      toast.error('Esperá a que terminen de subirse las imágenes.');
       return;
     }
+
+    // Ensure all blocks have their content
+    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const invalidBlock = blocks.find(b => {
+      if (b.type === 'text') return !stripHtml(b.content);
+      if (b.type === 'image') return !b.content.trim() || b.content.startsWith('blob:');
+      return !b.content.trim();
+    });
+    if (invalidBlock) {
+      if (invalidBlock.type === 'image' && invalidBlock.content.startsWith('blob:')) {
+        toast.error('Una imagen todavía se está subiendo. Esperá un momento.');
+      } else {
+        toast.error('Todos los bloques de contenido deben estar completos.');
+      }
+      return;
+    }
+
+    const blocksJson = JSON.stringify(blocks);
+
     if (formData.readTime < 1) {
       toast.error('El tiempo de lectura debe ser al menos 1 minuto');
       return;
@@ -175,9 +294,11 @@ const ArticleEditorContent: React.FC = () => {
           description: trimmedDescription,
           section: formData.section,
           author: trimmedAuthor,
+          ...(trimmedAuthorBio ? { authorBio: trimmedAuthorBio } : {}),
           readTime: formData.readTime,
-          content: trimmedContent,
+          content: blocksJson,
           featured: formData.featured,
+          status: "published",
           ...(imageSource === 'url' ? { imageUrl: trimmedImageUrl } : {}),
           ...(storageId ? { storageId } : {}),
         };
@@ -190,9 +311,11 @@ const ArticleEditorContent: React.FC = () => {
           description: trimmedDescription,
           section: formData.section,
           author: trimmedAuthor,
+          ...(trimmedAuthorBio ? { authorBio: trimmedAuthorBio } : {}),
           readTime: formData.readTime,
-          content: trimmedContent,
+          content: blocksJson,
           featured: formData.featured,
+          status: "published",
           imageUrl: imageSource === 'url' ? trimmedImageUrl : '',
           ...(storageId ? { storageId } : {}),
         };
@@ -325,17 +448,73 @@ const ArticleEditorContent: React.FC = () => {
                 </p>
               )}
 
-              <div
-                className="prose max-w-none"
-                style={{ fontSize: '16px', lineHeight: '1.8' }}
-              >
-                {formData.content.split('\n').map((paragraph, index) => (
-                  paragraph.trim() && (
-                    <p key={index} className="mb-4">
-                      {paragraph}
-                    </p>
-                  )
-                ))}
+              <div className="prose max-w-none" style={{ fontSize: '16px', lineHeight: '1.8' }}>
+                {blocks.map((block) => {
+                  if (!block.content.trim() && block.type !== 'image') return null;
+
+                  switch (block.type) {
+                    case 'text':
+                      let formattedText = block.content.split('\n').map((paragraph, index) => (
+                        <p key={index} className="mb-4">
+                          {paragraph}
+                        </p>
+                      ));
+
+                      if (block.metadata?.format === 'bold') {
+                        formattedText = [(<strong key="strong">{formattedText}</strong>)];
+                      } else if (block.metadata?.format === 'italic') {
+                        formattedText = [(<em key="em">{formattedText}</em>)];
+                      } else if (block.metadata?.format === 'underline') {
+                        formattedText = [(<u key="u">{formattedText}</u>)];
+                      }
+
+                      return <div key={block.id}>{formattedText}</div>;
+
+                    case 'image':
+                      if (!block.content) return null;
+                      return (
+                        <figure key={block.id} className="my-8">
+                          <img
+                            src={block.content}
+                            alt={block.metadata?.caption || 'Imagen del artículo'}
+                            className="w-full rounded-xl"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                          {block.metadata?.caption && (
+                            <figcaption className="text-center text-sm text-gray-500 mt-2 italic">
+                              {block.metadata.caption}
+                            </figcaption>
+                          )}
+                        </figure>
+                      );
+
+                    case 'embed':
+                      if (!block.content) return null;
+                      const isTwitter = block.content.includes('twitter.com') || block.content.includes('x.com');
+                      const isInstagram = block.content.includes('instagram.com');
+
+                      return (
+                        <div key={block.id} className="my-8 flex justify-center w-full overflow-hidden rounded-xl border border-gray-100 bg-gray-50 p-4">
+                          {isTwitter ? (
+                            <div className="w-full max-w-sm flex items-center justify-center p-4">
+                              <span className="text-blue-500 font-bold border rounded px-4 py-2 border-blue-200 bg-blue-50 text-sm flex gap-2"><Link2 size={16} /> Ver Tweet Original en X</span>
+                            </div>
+                          ) : isInstagram ? (
+                            <div className="w-full max-w-sm flex items-center justify-center p-4">
+                              <span className="text-pink-600 font-bold border rounded px-4 py-2 border-pink-200 bg-pink-50 text-sm flex gap-2"><Link2 size={16} /> Ver Post Original en Instagram</span>
+                            </div>
+                          ) : (
+                            <a href={block.content} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 text-sm font-medium">
+                              <Link2 size={16} /> Ver contenido externo
+                            </a>
+                          )}
+                        </div>
+                      );
+
+                    default:
+                      return null;
+                  }
+                })}
               </div>
 
               <div className="mt-8 pt-8 border-t border-gray-200">
@@ -409,28 +588,230 @@ const ArticleEditorContent: React.FC = () => {
                   />
                 </div>
 
-                {/* Content */}
+                {/* Content Blocks */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <label
-                    htmlFor="content"
-                    className="block mb-2"
-                    style={{ fontSize: '14px', fontWeight: 600 }}
-                  >
-                    Contenido del artículo *
-                  </label>
-                  <textarea
-                    id="content"
-                    name="content"
-                    value={formData.content}
-                    onChange={handleChange}
-                    rows={20}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all resize-y"
-                    placeholder="Escribe el contenido del artículo aquí... Usa saltos de línea para separar párrafos."
-                    required
-                    style={{ fontSize: '16px', lineHeight: '1.7' }}
-                  />
-                  <p className="mt-2 text-gray-500 text-xs">
-                    {formData.content.length} caracteres
+                  <div className="flex justify-between items-center mb-4">
+                    <label
+                      className="block"
+                      style={{ fontSize: '14px', fontWeight: 600 }}
+                    >
+                      Contenido del artículo (Bloques) *
+                    </label>
+                  </div>
+
+                  <div className="space-y-6">
+                    {blocks.map((block, index) => (
+                      <div key={block.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative group">
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex items-center gap-2">
+                            <GripVertical className="text-gray-400 cursor-move" size={16} />
+                            <span className="text-xs font-semibold uppercase text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                              {block.type === 'text' && 'Texto'}
+                              {block.type === 'image' && 'Imagen'}
+                              {block.type === 'embed' && 'Embed Social'}
+                            </span>
+                          </div>
+                          {blocks.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newBlocks = [...blocks];
+                                newBlocks.splice(index, 1);
+                                setBlocks(newBlocks);
+                              }}
+                              className="text-red-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Text Block Content */}
+                        {block.type === 'text' && (
+                          <div className="space-y-2 relative bg-white rounded-lg border border-gray-300">
+                            <ReactQuill
+                              theme="snow"
+                              value={block.content}
+                              onChange={(content) => {
+                                const newBlocks = [...blocks];
+                                newBlocks[index].content = content;
+                                setBlocks(newBlocks);
+                              }}
+                              modules={modules}
+                              placeholder="Escribe el párrafo aquí..."
+                              className="w-full text-base"
+                            />
+                          </div>
+                        )}
+
+                        {/* Image Block Content */}
+                        {block.type === 'image' && (() => {
+                          const mode = blockImageModes[block.id] || 'upload';
+                          const isUploading = blockUploading[block.id] || false;
+                          return (
+                            <div className="space-y-3">
+                              {/* Mode selector */}
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setBlockImageModes(prev => ({ ...prev, [block.id]: 'upload' }))}
+                                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${mode === 'upload'
+                                    ? 'bg-[var(--color-brand-primary)] text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                  <Upload size={14} />
+                                  Subir archivo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setBlockImageModes(prev => ({ ...prev, [block.id]: 'url' }))}
+                                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${mode === 'url'
+                                    ? 'bg-[var(--color-brand-primary)] text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                  <LinkIcon size={14} />
+                                  Enlace URL
+                                </button>
+                              </div>
+
+                              {mode === 'url' ? (
+                                <input
+                                  type="text"
+                                  value={block.content.startsWith('blob:') ? '' : block.content}
+                                  onChange={(e) => {
+                                    const newBlocks = [...blocks];
+                                    newBlocks[index].content = e.target.value;
+                                    setBlocks(newBlocks);
+                                  }}
+                                  className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)]"
+                                  placeholder="URL de la imagen (ej: https://...)"
+                                />
+                              ) : (
+                                <div>
+                                  <div
+                                    className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer bg-gray-50 ${isUploading ? 'border-gray-200 opacity-60 pointer-events-none' : 'border-gray-300 hover:border-[var(--color-brand-primary)]'}`}
+                                    onClick={() => blockFileInputRefs.current[block.id]?.click()}
+                                  >
+                                    <input
+                                      type="file"
+                                      ref={(el) => { blockFileInputRefs.current[block.id] = el; }}
+                                      className="hidden"
+                                      accept="image/jpeg,image/png,image/jpg,image/webp"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handleBlockFileUpload(block.id, file);
+                                        }
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                    <div className="flex flex-col items-center gap-1.5">
+                                      {isUploading ? (
+                                        <>
+                                          <div className="w-6 h-6 rounded-full border-2 border-[var(--color-brand-primary)] border-t-transparent animate-spin" />
+                                          <p className="text-xs text-gray-500">Subiendo imagen...</p>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Upload className="text-gray-400" size={24} />
+                                          <p className="text-xs text-gray-600">
+                                            {block.content && !block.content.startsWith('blob:') ? 'Clic para cambiar la imagen' : 'Clic para seleccionar una imagen'}
+                                          </p>
+                                          <p className="text-xs text-gray-400">JPG, PNG o WebP — Máximo 5MB</p>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {block.content && !block.content.startsWith('blob:') && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newBlocks = [...blocks];
+                                        newBlocks[index].content = '';
+                                        setBlocks(newBlocks);
+                                      }}
+                                      className="mt-1.5 text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                                    >
+                                      <X size={12} /> Eliminar imagen
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Preview */}
+                              {block.content && (
+                                <div className="mt-2 rounded overflow-hidden aspect-video bg-gray-100 flex items-center justify-center">
+                                  <img src={block.content} alt="Preview" className="max-h-full max-w-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                </div>
+                              )}
+
+                              {/* Caption */}
+                              <input
+                                type="text"
+                                value={block.metadata?.caption || ''}
+                                onChange={(e) => {
+                                  const newBlocks = [...blocks];
+                                  newBlocks[index].metadata = { ...newBlocks[index].metadata, caption: e.target.value };
+                                  setBlocks(newBlocks);
+                                }}
+                                className="w-full px-3 py-1.5 text-sm rounded border border-gray-200 outline-none focus:border-gray-400"
+                                placeholder="Epígrafe o bajada de la foto (opcional)"
+                              />
+                            </div>
+                          );
+                        })()}
+
+                        {/* Embed Block Content */}
+                        {block.type === 'embed' && (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={block.content}
+                              onChange={(e) => {
+                                const newBlocks = [...blocks];
+                                newBlocks[index].content = e.target.value;
+                                setBlocks(newBlocks);
+                              }}
+                              className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)]"
+                              placeholder="Pega la URL del Tweet o posteo de Instagram aquí..."
+                            />
+                            <p className="text-xs text-gray-500">
+                              Al guardar o en la vista previa, el frame se cargará automáticamente.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Block Menu */}
+                  <div className="mt-6 flex justify-center gap-2 border-t border-dashed border-gray-300 pt-6">
+                    <button
+                      type="button"
+                      onClick={() => setBlocks([...blocks, { id: crypto.randomUUID(), type: 'text', content: '' }])}
+                      className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium transition-colors"
+                    >
+                      <Type size={16} /> + Texto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBlocks([...blocks, { id: crypto.randomUUID(), type: 'image', content: '' }])}
+                      className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium transition-colors"
+                    >
+                      <ImageIcon size={16} /> + Foto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBlocks([...blocks, { id: crypto.randomUUID(), type: 'embed', content: '' }])}
+                      className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium transition-colors"
+                    >
+                      <Link2 size={16} /> + Embed Social
+                    </button>
+                  </div>
+                  <p className="mt-4 text-gray-500 text-xs text-center">
+                    {blocks.length} bloque(s) añadidos.
                   </p>
                 </div>
               </div>
@@ -486,6 +867,26 @@ const ArticleEditorContent: React.FC = () => {
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all"
                         required
                         style={{ fontSize: '16px' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="authorBio"
+                        className="block mb-2"
+                        style={{ fontSize: '14px', fontWeight: 600 }}
+                      >
+                        Biografía del autor
+                      </label>
+                      <textarea
+                        id="authorBio"
+                        name="authorBio"
+                        value={formData.authorBio}
+                        onChange={handleChange}
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all resize-none"
+                        placeholder="Breve biografía del autor (opcional)..."
+                        style={{ fontSize: '14px' }}
                       />
                     </div>
 

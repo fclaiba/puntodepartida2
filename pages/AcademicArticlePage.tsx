@@ -194,9 +194,11 @@ export const AcademicArticlePage: React.FC = () => {
             >
               RESUMEN
             </h2>
-            <p className="text-gray-700 mb-6" style={{ fontSize: "16px", lineHeight: "1.8" }}>
-              {article.abstract}
-            </p>
+            <div
+              className="prose max-w-none text-gray-700 mb-6"
+              style={{ fontSize: "16px", lineHeight: "1.8" }}
+              dangerouslySetInnerHTML={{ __html: article.abstract }}
+            />
 
             {articlePdfUrl ? (
               <a

@@ -138,6 +138,14 @@ export const generateUploadUrl = mutation(async (ctx) => {
     return await ctx.storage.generateUploadUrl();
 });
 
+// Get public URL for a storage file
+export const getStorageUrl = mutation({
+    args: { storageId: v.id("_storage") },
+    handler: async (ctx, args) => {
+        return await ctx.storage.getUrl(args.storageId);
+    },
+});
+
 // Create article
 export const create = mutation({
     args: {
@@ -147,6 +155,7 @@ export const create = mutation({
         description: v.string(),
         content: v.string(),
         author: v.string(),
+        authorBio: v.optional(v.string()),
         readTime: v.number(),
         featured: v.boolean(),
         publishDate: v.optional(v.string()),
@@ -206,6 +215,7 @@ export const update = mutation({
         description: v.optional(v.string()),
         content: v.optional(v.string()),
         author: v.optional(v.string()),
+        authorBio: v.optional(v.string()),
         readTime: v.optional(v.number()),
         featured: v.optional(v.boolean()),
         publishDate: v.optional(v.string()),

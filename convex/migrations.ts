@@ -1,6 +1,24 @@
 import { mutation } from "./_generated/server";
 import { initialNewsArticles } from "./seed_data";
 
+// One-time migration: publish all draft articles so they appear on the site
+export const publishAllDraftArticles = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const articles = await ctx.db.query("articles").collect();
+        let updatedCount = 0;
+
+        for (const article of articles) {
+            if (!article.status || article.status === "draft") {
+                await ctx.db.patch(article._id, { status: "published" });
+                updatedCount++;
+            }
+        }
+
+        return `Published ${updatedCount} draft articles.`;
+    },
+});
+
 export const restoreSeedImages = mutation({
     args: {},
     handler: async (ctx) => {

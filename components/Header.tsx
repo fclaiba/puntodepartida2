@@ -98,8 +98,8 @@ export const Header: React.FC = () => {
                 key={item.label}
                 to={item.href}
                 className={`relative group py-1 transition-colors ${item.isSpecial
-                    ? 'text-[var(--color-brand-primary)] font-bold'
-                    : 'hover:text-[var(--color-brand-primary)]'
+                  ? 'text-[var(--color-brand-primary)] font-bold'
+                  : 'text-gray-700 hover:text-[var(--color-brand-primary)]'
                   }`}
                 style={{
                   fontSize: item.isSpecial ? '14px' : '14px',
@@ -255,7 +255,7 @@ export const Header: React.FC = () => {
                       key={item.label}
                       to={item.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className="px-4 py-3.5 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation active:bg-gray-200"
+                      className="px-4 py-3.5 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation active:bg-gray-200 text-gray-800"
                       style={{ fontSize: '16px', fontWeight: 500 }}
                     >
                       {item.label}

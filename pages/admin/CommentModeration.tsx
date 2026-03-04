@@ -7,12 +7,14 @@ import { useAdmin } from '../../contexts/AdminContext';
 import { ProtectedRoute } from '../../components/admin/ProtectedRoute';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { Id } from '@convex/_generated/dataModel';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 const CommentModerationContent: React.FC = () => {
   const { comments, approveComment, rejectComment, deleteComment, isCommentsLoading } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [pendingActions, setPendingActions] = useState<Record<string, 'approve' | 'reject' | 'delete'>>({});
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: Id<"comments"> | null }>({ isOpen: false, id: null });
 
   const filteredComments = useMemo(() => {
     return comments.filter(comment => {
@@ -70,12 +72,13 @@ const CommentModerationContent: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: Id<"comments">) => {
-    const confirmed = window.confirm('¿Estás seguro de eliminar este comentario?');
-    if (!confirmed) {
-      return;
-    }
+  const confirmDelete = (id: Id<"comments">) => {
+    setDeleteModal({ isOpen: true, id });
+  };
 
+  const executeDelete = async () => {
+    const id = deleteModal.id;
+    if (!id) return;
     startAction(id, 'delete');
     try {
       await deleteComment(id);
@@ -85,6 +88,7 @@ const CommentModerationContent: React.FC = () => {
       toast.error('No se pudo eliminar el comentario');
     } finally {
       endAction(id);
+      setDeleteModal({ isOpen: false, id: null });
     }
   };
 
@@ -146,8 +150,8 @@ const CommentModerationContent: React.FC = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
-              <Search 
-                size={20} 
+              <Search
+                size={20}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
@@ -161,8 +165,8 @@ const CommentModerationContent: React.FC = () => {
             </div>
 
             <div className="relative">
-              <Filter 
-                size={20} 
+              <Filter
+                size={20}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <select
@@ -192,8 +196,8 @@ const CommentModerationContent: React.FC = () => {
               No se encontraron comentarios
             </h3>
             <p className="text-gray-600" style={{ fontSize: '14px' }}>
-              {searchQuery || filterStatus !== 'all' 
-                ? 'Intenta con otros filtros' 
+              {searchQuery || filterStatus !== 'all'
+                ? 'Intenta con otros filtros'
                 : 'No hay comentarios para moderar'}
             </p>
           </div>
@@ -203,7 +207,7 @@ const CommentModerationContent: React.FC = () => {
               const statusStyle = getStatusColor(comment.status);
               const commentKey = comment._id as string;
               const actionInProgress = pendingActions[commentKey];
-              
+
               return (
                 <motion.div
                   key={comment._id}
@@ -218,9 +222,9 @@ const CommentModerationContent: React.FC = () => {
                         <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
                           {comment.author}
                         </h3>
-                        <span 
+                        <span
                           className="px-2 py-1 rounded-full text-xs"
-                          style={{ 
+                          style={{
                             backgroundColor: statusStyle.bg,
                             color: statusStyle.text,
                             fontWeight: 600
@@ -257,7 +261,7 @@ const CommentModerationContent: React.FC = () => {
                         onClick={() => handleApprove(comment._id)}
                         disabled={actionInProgress !== undefined}
                         className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                        style={{ 
+                        style={{
                           backgroundColor: '#dcfce7',
                           color: '#16a34a',
                           fontSize: '14px',
@@ -272,13 +276,13 @@ const CommentModerationContent: React.FC = () => {
                         {actionInProgress === 'approve' ? 'Aprobando...' : 'Aprobar'}
                       </button>
                     )}
-                    
+
                     {comment.status !== 'rejected' && (
                       <button
                         onClick={() => handleReject(comment._id)}
                         disabled={actionInProgress !== undefined}
                         className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                        style={{ 
+                        style={{
                           backgroundColor: '#fee2e2',
                           color: '#dc2626',
                           fontSize: '14px',
@@ -295,7 +299,7 @@ const CommentModerationContent: React.FC = () => {
                     )}
 
                     <button
-                      onClick={() => handleDelete(comment._id)}
+                      onClick={() => confirmDelete(comment._id)}
                       disabled={actionInProgress !== undefined}
                       className="ml-auto p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       title="Eliminar"
@@ -313,6 +317,14 @@ const CommentModerationContent: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={executeDelete}
+        title="Eliminar Comentario"
+        message="¿Estás seguro de que deseas eliminar este comentario? Esta acción no se puede deshacer."
+      />
     </AdminLayout>
   );
 };

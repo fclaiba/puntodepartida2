@@ -13,6 +13,7 @@ import type * as activity_logs from "../activity_logs.js";
 import type * as analytics from "../analytics.js";
 import type * as articles from "../articles.js";
 import type * as comments from "../comments.js";
+import type * as http from "../http.js";
 import type * as lib_tracking from "../lib/tracking.js";
 import type * as lib_trackingSchemas from "../lib/trackingSchemas.js";
 import type * as migrations from "../migrations.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   articles: typeof articles;
   comments: typeof comments;
+  http: typeof http;
   "lib/tracking": typeof lib_tracking;
   "lib/trackingSchemas": typeof lib_trackingSchemas;
   migrations: typeof migrations;

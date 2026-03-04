@@ -23,23 +23,27 @@ export const SectionTag: React.FC<SectionTagProps> = ({
   className = ''
 }) => {
   const config = sectionConfig[section] || { label: section?.toUpperCase() || 'NOTICIA', color: '#666' };
-  const bgColor = variant === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.95)';
-  const textColor = variant === 'dark' ? '#ffffff' : '#000000';
+  const bgColor = variant === 'dark' ? config.color : 'rgba(255, 255, 255, 0.95)';
+  const textColor = variant === 'dark' ? '#ffffff' : config.color;
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 md:gap-2 rounded-md overflow-hidden ${className}`}
+      className={`inline-flex items-center rounded-md overflow-hidden ${className}`}
       style={{
         backgroundColor: bgColor,
-        backdropFilter: 'blur(8px)',
+        backdropFilter: variant === 'dark' ? 'none' : 'blur(8px)',
+        border: variant === 'light' ? `1px solid ${config.color}30` : 'none',
+        boxShadow: variant === 'dark' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
       }}
     >
-      <div
-        className="w-1.5 md:w-2 h-full"
-        style={{ backgroundColor: config.color }}
-      />
+      {variant === 'light' && (
+        <div
+          className="w-1.5 md:w-2 h-full"
+          style={{ backgroundColor: config.color }}
+        />
+      )}
       <span
-        className="px-2 md:px-3 py-1.5 md:py-2 tracking-wider"
+        className="px-2.5 md:px-3 py-1 md:py-1.5 tracking-wider"
         style={{
           color: textColor,
           fontSize: 'clamp(10px, 2vw, 12px)',

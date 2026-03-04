@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import {
   LayoutDashboard,
   FileText,
@@ -29,7 +30,7 @@ import {
 type BreadcrumbEntry = { label: string; path?: string };
 
 const buildBreadcrumbs = (path: string): BreadcrumbEntry[] => {
-    const base: BreadcrumbEntry[] = [{ label: 'Panel', path: '/panel' }];
+  const base: BreadcrumbEntry[] = [{ label: 'Panel', path: '/panel' }];
   if (path === '/panel' || path === '/panel/') {
     return base;
   }
@@ -113,6 +114,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { currentUser, logout, comments } = useAdmin();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const { setTheme } = useTheme();
+
+  React.useEffect(() => {
+    // Force light theme in Admin area, as it's not adapted for dark mode yet
+    setTheme('light');
+  }, [setTheme]);
 
   const handleLogout = () => {
     logout();

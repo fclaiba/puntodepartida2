@@ -10,6 +10,8 @@ import { AdminLayout } from "../../../components/admin/AdminLayout";
 import { ProtectedRoute } from "../../../components/admin/ProtectedRoute";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { useConvexUpload } from "../../../hooks/useConvexUpload";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const MAX_PDF_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -27,6 +29,15 @@ const defaultFormState: ArticleFormState = {
   abstract: "",
   pageRange: "",
   pdfUrl: "",
+};
+
+const modules = {
+  toolbar: [
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    ['link'],
+    ['clean']
+  ],
 };
 
 const AcademicArticleEditorContent: React.FC = () => {
@@ -260,16 +271,18 @@ const AcademicArticleEditorContent: React.FC = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Resumen
                 </label>
-                <textarea
-                  value={formState.abstract}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, abstract: event.target.value }))
-                  }
-                  rows={6}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/30 focus:border-[var(--color-brand-primary)]"
-                  placeholder="Resume los puntos clave del artículo..."
-                  required
-                />
+                <div className="bg-white rounded-lg border border-gray-300">
+                  <ReactQuill
+                    theme="snow"
+                    value={formState.abstract}
+                    onChange={(content) =>
+                      setFormState((prev) => ({ ...prev, abstract: content }))
+                    }
+                    modules={modules}
+                    className="w-full text-base"
+                    placeholder="Resume los puntos clave del artículo..."
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">

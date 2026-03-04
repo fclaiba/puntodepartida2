@@ -38,10 +38,10 @@ const matchMediaMock = (query: string): MediaQueryList => {
     matches: false,
     media: query,
     onchange: null,
-    addEventListener: (_event, listener) => {
+    addEventListener: (_event: any, listener: any) => {
       listeners.add(listener as (event: MediaQueryListEvent) => void);
     },
-    removeEventListener: (_event, listener) => {
+    removeEventListener: (_event: any, listener: any) => {
       listeners.delete(listener as (event: MediaQueryListEvent) => void);
     },
     addListener: (listener: (event: MediaQueryListEvent) => void) => {
