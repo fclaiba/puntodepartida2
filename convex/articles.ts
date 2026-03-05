@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import type { GenericQueryCtx } from "convex/server";
 import type { DataModel, Doc, Id } from "./_generated/dataModel";
 
@@ -164,6 +165,10 @@ export const create = mutation({
             v.union(v.literal("draft"), v.literal("scheduled"), v.literal("published"))
         ),
         source: v.optional(v.union(v.literal("internal"), v.literal("external"))),
+        isPremium: v.optional(v.boolean()),
+        metaTitle: v.optional(v.string()),
+        metaDescription: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const {
@@ -186,6 +191,9 @@ export const create = mutation({
             views: 0,
             status,
             source,
+            metaTitle: args.metaTitle,
+            metaDescription: args.metaDescription,
+            ogImage: args.ogImage,
         };
 
         if (storageId) {
@@ -224,6 +232,10 @@ export const update = mutation({
             v.union(v.literal("draft"), v.literal("scheduled"), v.literal("published"))
         ),
         source: v.optional(v.union(v.literal("internal"), v.literal("external"))),
+        isPremium: v.optional(v.boolean()),
+        metaTitle: v.optional(v.string()),
+        metaDescription: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { id, ...updates } = args;
@@ -317,5 +329,49 @@ export const getTrendingTopics = query({
             views: article.views ?? 0,
             publishDate: getEffectivePublishDate(article) ?? null,
         }));
+    },
+});
+
+export const getPublicPaginated = query({
+    args: {
+        paginationOpts: paginationOptsValidator,
+        section: v.optional(v.string()),
+        status: v.optional(v.union(v.literal("draft"), v.literal("scheduled"), v.literal("published"))),
+        source: v.optional(v.union(v.literal("internal"), v.literal("external"))),
+    },
+    handler: async (ctx, args) => {
+        let queryBuilder: any = ctx.db.query("articles");
+
+        if (args.section) {
+            queryBuilder = queryBuilder
+                .withIndex("by_section", (q: any) => q.eq("section", args.section!))
+                .order("desc");
+        } else {
+            queryBuilder = queryBuilder.withIndex("by_date").order("desc");
+        }
+
+        const targetStatus = args.status ?? "published";
+        const targetSource = args.source ?? "internal";
+        const nowIso = new Date().toISOString();
+
+        queryBuilder = queryBuilder.filter((q: any) =>
+            q.and(
+                q.eq(q.field("status"), targetStatus),
+                q.eq(q.field("source"), targetSource),
+                q.or(
+                    q.eq(q.field("publishDate"), undefined),
+                    q.lte(q.field("publishDate"), nowIso)
+                )
+            )
+        );
+
+        const result = await queryBuilder.paginate(args.paginationOpts);
+
+        const pageWithImages = await withSignedImageUrls(ctx, result.page as Doc<"articles">[]);
+
+        return {
+            ...result,
+            page: pageWithImages,
+        };
     },
 });

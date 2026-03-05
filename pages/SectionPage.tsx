@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { SectionType } from '../components/SectionTag';
 import { NewsCard } from '../components/NewsCard';
@@ -20,8 +20,16 @@ export const SectionPage: React.FC = () => {
   const location = useLocation();
   const section = location.pathname.replace('/', '') as SectionType;
 
-  // Fetch articles for this section from Convex
-  const articlesRaw = useQuery(api.articles.getPublic, { section: section });
+  const {
+    results: articlesRaw,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
+    api.articles.getPublicPaginated,
+    { section: section },
+    { initialNumItems: 12 }
+  );
+
   const articles = (articlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
 
   const featuredArticle = articles.find(a => a.featured) || articles[0];
@@ -46,7 +54,7 @@ export const SectionPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors">
       {/* Breadcrumb */}
       <div className="container mx-auto px-4 py-6">
         <Link
@@ -99,6 +107,23 @@ export const SectionPage: React.FC = () => {
               </Link>
             ))}
           </div>
+
+          {status === "CanLoadMore" && (
+            <div className="mt-12 text-center">
+              <button
+                onClick={() => loadMore(12)}
+                className="px-8 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-full hover:bg-gray-50 hover:text-[var(--color-brand-primary)] hover:border-[var(--color-brand-primary)] transition-all active:scale-95"
+              >
+                Cargar más artículos
+              </button>
+            </div>
+          )}
+          {status === "LoadingMore" && (
+            <div className="mt-12 text-center text-gray-500">
+              <div className="w-6 h-6 border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              Cargando...
+            </div>
+          )}
         </div>
       ) : !featuredArticle ? (
         <div className="container mx-auto px-5 md:px-10 lg:px-[60px] py-20 text-center">

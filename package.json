@@ -40,6 +40,8 @@
     "@radix-ui/react-toggle": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@types/react-helmet": "^6.1.11",
+    "@types/web-push": "^3.6.4",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -55,6 +57,7 @@
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
+    "react-helmet": "^6.1.0",
     "react-hook-form": "^7.55.0",
     "react-quill": "^2.0.0",
     "react-resizable-panels": "^2.1.7",
@@ -65,7 +68,8 @@
     "resend": "^6.9.3",
     "sonner": "^2.0.3",
     "tailwind-merge": "^2.5.4",
-    "vaul": "^1.1.2"
+    "vaul": "^1.1.2",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

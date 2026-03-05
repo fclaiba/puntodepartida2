@@ -20,6 +20,8 @@ export interface User {
   createdAt: string;
   lastLogin: string;
   articlesPublished?: number;
+  avatarUrl?: string;
+  bio?: string;
 }
 
 export type ArticleStatus = 'draft' | 'scheduled' | 'published';
@@ -145,6 +147,8 @@ interface AdminContextType {
   isAuthLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  isLoading: boolean;
+  isGlobalLoading: boolean;
 
   // Users
   users: User[];
@@ -267,6 +271,8 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Local State for Session
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const isGlobalLoading = isLoading || isAuthLoading;
   const [userCreationStatus, setUserCreationStatus] = useState<AsyncStatus>('idle');
   const [userCreationError, setUserCreationError] = useState<string | null>(null);
 
@@ -573,6 +579,8 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     isAuthLoading,
     login,
     logout,
+    isLoading,
+    isGlobalLoading,
     users,
     addUser,
     updateUser,

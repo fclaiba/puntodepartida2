@@ -141,7 +141,7 @@ export const TrendingBar: React.FC = () => {
       {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={index}
-          className="h-3 w-24 md:w-32 rounded-full bg-gray-200/80 animate-pulse"
+          className="h-3 w-24 md:w-32 rounded-full bg-gray-200/80 dark:bg-gray-800/80 animate-pulse"
         />
       ))}
     </div>
@@ -165,7 +165,7 @@ export const TrendingBar: React.FC = () => {
             <Link
               key={article.id}
               to={article.path}
-              className="flex-shrink-0 text-xs md:text-sm font-medium text-gray-700 hover:text-[var(--color-brand-primary)] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-primary)] focus-visible:ring-offset-2"
+              className="flex-shrink-0 text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[var(--color-brand-primary)] dark:hover:text-[var(--color-brand-primary)] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-primary)] focus-visible:ring-offset-2"
               aria-label={`Ir a la nota: ${article.title}`}
               title={article.title}
               onClick={() => {
@@ -203,7 +203,7 @@ export const TrendingBar: React.FC = () => {
           <Link
             key={`${article.id}-${index}`}
             to={article.path}
-            className="flex-shrink-0 text-xs md:text-sm font-medium text-gray-700 hover:text-[var(--color-brand-primary)] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-primary)] focus-visible:ring-offset-2"
+            className="flex-shrink-0 text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[var(--color-brand-primary)] dark:hover:text-[var(--color-brand-primary)] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-primary)] focus-visible:ring-offset-2"
             aria-label={`Ir a la nota: ${article.title}`}
             title={article.title}
             onClick={() => {
@@ -239,7 +239,7 @@ export const TrendingBar: React.FC = () => {
 
   return (
     <div
-      className="relative py-2 md:py-3 border-y border-gray-200 bg-[var(--color-brand-neutral-050,#f9f9f9)] overflow-hidden"
+      className="relative py-2 md:py-3 border-y border-gray-200 dark:border-gray-800 bg-[var(--color-brand-neutral-050,#f9f9f9)] dark:bg-gray-900 overflow-hidden transition-colors"
       role="region"
       aria-label="Notas en tendencia de nuestra plataforma"
     >
@@ -268,7 +268,7 @@ export const TrendingBar: React.FC = () => {
           <div className="flex-1 overflow-hidden">{content}</div>
 
           <div
-            className="pointer-events-none absolute inset-y-0 right-0 w-12 md:w-16 bg-gradient-to-l from-[var(--color-brand-neutral-050,#f9f9f9)] to-transparent"
+            className="pointer-events-none absolute inset-y-0 right-0 w-12 md:w-16 bg-gradient-to-l from-[var(--color-brand-neutral-050,#f9f9f9)] dark:from-gray-900 to-transparent transition-colors"
             aria-hidden="true"
           />
         </div>

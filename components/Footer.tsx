@@ -1,6 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Youtube, Mail } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Youtube, Mail, Bell } from 'lucide-react';
+import { useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
+import { toast } from 'sonner';
+import { requestNotificationPermission, subscribeToPush } from '../utils/pushNotifications';
 
 // Custom X (Twitter) Icon
 const XIcon = ({ size = 24, color = "currentColor", ...props }) => (
@@ -42,6 +46,68 @@ export const Footer: React.FC = () => {
   const navigate = useNavigate();
   const [clickCount, setClickCount] = useState(0);
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const subscribe = useMutation(api.newsletters.subscribe);
+  const subscribePush = useMutation(api.push.subscribe);
+
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [isPushLoading, setIsPushLoading] = useState(false);
+
+  const handlePushSubscribe = async () => {
+    setIsPushLoading(true);
+    try {
+      const permission = await requestNotificationPermission();
+      if (!permission) {
+        toast.error("Debes permitir las notificaciones en tu navegador.");
+        return;
+      }
+
+      const subscription = await subscribeToPush();
+
+      if (subscription) {
+        const subData = JSON.parse(JSON.stringify(subscription));
+        await subscribePush({
+          endpoint: subData.endpoint,
+          keys: {
+            p256dh: subData.keys.p256dh,
+            auth: subData.keys.auth
+          }
+        });
+        setIsPushEnabled(true);
+        toast.success("Te has suscrito a las Notificaciones Push");
+      }
+    } catch (e) {
+      toast.error("No se pudo completar la suscripción a Web Push.");
+      console.error(e);
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error('Por favor ingresa un email válido');
+      return;
+    }
+
+    setIsSubscribing(true);
+    try {
+      const result = await subscribe({ email });
+      if (result === 'subscribed' || result === 'resubscribed') {
+        toast.success('¡Te has suscrito con éxito al Newsletter!');
+        setEmail('');
+      } else if (result === 'already_subscribed') {
+        toast.info('Este correo ya se encuentra suscrito.');
+        setEmail('');
+      }
+    } catch (e) {
+      toast.error('Ocurrió un error al procesar la suscripción.');
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   const handleLogoClick = () => {
     const newCount = clickCount + 1;
@@ -241,11 +307,17 @@ export const Footer: React.FC = () => {
               <input
                 type="email"
                 placeholder="Tu email"
-                className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 outline-none focus:border-white/40 transition-colors"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()}
+                className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 outline-none focus:border-white/40 transition-colors disabled:opacity-50"
                 style={{ fontSize: '14px' }}
+                disabled={isSubscribing}
               />
               <button
-                className="px-6 py-3 rounded-lg transition-all hover:scale-105"
+                onClick={handleSubscribe}
+                disabled={isSubscribing}
+                className="px-6 py-3 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                 style={{
                   backgroundColor: 'var(--color-brand-primary)',
                   color: 'white',
@@ -253,10 +325,28 @@ export const Footer: React.FC = () => {
                   fontWeight: 600
                 }}
               >
-                Suscribirme
+                {isSubscribing ? 'Procesando...' : 'Suscribirme'}
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Push Notifications Opt-in */}
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={handlePushSubscribe}
+            disabled={isPushEnabled || isPushLoading}
+            className="flex items-center gap-2 px-6 py-3 rounded-full transition-all disabled:opacity-50"
+            style={{
+              backgroundColor: isPushEnabled ? 'rgba(255, 255, 255, 0.1)' : 'var(--color-brand-primary)',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: 600
+            }}
+          >
+            <Bell size={18} />
+            {isPushLoading ? 'Activando...' : isPushEnabled ? 'Notificaciones Activadas' : 'Activar Notificaciones Push'}
+          </button>
         </div>
 
         {/* Bottom Section */}

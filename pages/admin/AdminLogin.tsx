@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { toast } from 'sonner';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ export const AdminLogin: React.FC = () => {
       await resendVerificationCodeMutation({ email });
       setVerifyError('');
       // You could add a toast here like sonner
-      alert("Código reenviado a tu email.");
+      toast.success("Código reenviado a tu email.");
     } catch (err: any) {
       setVerifyError(err.message || 'Error al reenviar el código');
     }

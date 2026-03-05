@@ -65,7 +65,7 @@ export const AcademicArticlePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
         <LoadingSpinner />
       </div>
     );
@@ -84,21 +84,21 @@ export const AcademicArticlePage: React.FC = () => {
   const articlePdfUrl = article.pdfUrl;
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="border-b border-gray-200 bg-gray-50">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors">
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-5 md:px-10 lg:px-[60px] py-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-            <Link to="/extrategia" className="hover:text-[var(--color-brand-primary)] transition-colors">
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <Link to="/extrategia" className="hover:text-[var(--color-brand-primary)] dark:hover:text-gray-300 transition-colors">
               EXTRATEGIA
             </Link>
             <span>/</span>
-            <span className="text-gray-900">{volume.title}</span>
+            <span className="text-gray-900 dark:text-gray-100">{volume.title}</span>
             <span>/</span>
-            <span className="text-gray-900">{article.title}</span>
+            <span className="text-gray-900 dark:text-gray-100">{article.title}</span>
           </div>
           <Link
             to="/extrategia"
-            className="inline-flex items-center gap-2 text-sm hover:text-[var(--color-brand-primary)] transition-colors font-semibold"
+            className="inline-flex items-center gap-2 text-sm hover:text-[var(--color-brand-primary)] dark:hover:text-gray-300 transition-colors font-semibold"
           >
             <ArrowLeft size={16} />
             Volver a EXTRATEGIA
@@ -195,7 +195,7 @@ export const AcademicArticlePage: React.FC = () => {
               RESUMEN
             </h2>
             <div
-              className="prose max-w-none text-gray-700 mb-6"
+              className="prose max-w-none text-gray-700 dark:text-gray-300 mb-6"
               style={{ fontSize: "16px", lineHeight: "1.8" }}
               dangerouslySetInnerHTML={{ __html: article.abstract }}
             />
@@ -215,7 +215,7 @@ export const AcademicArticlePage: React.FC = () => {
                 Descargar PDF del artículo
               </a>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500">
+              <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                 El PDF del artículo estará disponible próximamente.
               </div>
             )}
@@ -238,7 +238,7 @@ export const AcademicArticlePage: React.FC = () => {
             >
               Sobre este volumen
             </h2>
-            <div className="space-y-5 text-gray-800" style={{ fontSize: "17px", lineHeight: "1.9" }}>
+            <div className="space-y-5 text-gray-800 dark:text-gray-200" style={{ fontSize: "17px", lineHeight: "1.9" }}>
               {descriptionParagraphs.map((paragraph, idx) => (
                 <p key={idx}>{paragraph}</p>
               ))}
@@ -250,7 +250,7 @@ export const AcademicArticlePage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="mb-12 p-8 rounded-2xl bg-gray-50 border border-gray-200"
+              className="mb-12 p-8 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800"
             >
               <h2
                 className="mb-4"
@@ -262,7 +262,7 @@ export const AcademicArticlePage: React.FC = () => {
               >
                 Editorial del volumen
               </h2>
-              <div className="space-y-4 text-gray-700" style={{ fontSize: "16px", lineHeight: "1.8" }}>
+              <div className="space-y-4 text-gray-700 dark:text-gray-300" style={{ fontSize: "16px", lineHeight: "1.8" }}>
                 {editorialParagraphs.map((paragraph, idx) => (
                   <p key={idx}>{paragraph}</p>
                 ))}
@@ -330,7 +330,7 @@ export const AcademicArticlePage: React.FC = () => {
                   <Link
                     key={otherArticle._id}
                     to={`/extrategia/${volume._id}/${otherArticle._id}`}
-                    className="block p-6 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors group"
+                    className="block p-6 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                   >
                     <div className="flex items-start gap-4">
                       <div
@@ -351,9 +351,9 @@ export const AcademicArticlePage: React.FC = () => {
                         >
                           {otherArticle.title}
                         </h4>
-                        <p className="text-gray-600 text-sm">{otherArticle.author}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">{otherArticle.author}</p>
                         {otherArticle.pageRange && (
-                          <p className="text-gray-500 text-xs mt-1">Páginas {otherArticle.pageRange}</p>
+                          <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Páginas {otherArticle.pageRange}</p>
                         )}
                       </div>
                     </div>

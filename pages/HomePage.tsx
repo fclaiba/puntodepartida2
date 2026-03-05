@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
+import { toast } from 'sonner';
 import { HeroSection } from '../components/HeroSection';
 import { NewsCard } from '../components/NewsCard';
 import { SectionHeader } from '../components/SectionHeader';
 import { TrendingBar } from '../components/TrendingBar';
+import { AdBanner } from '../components/AdBanner';
 import { Separator } from '../components/ui/separator';
 import { Link } from 'react-router-dom';
 import { SectionType } from '../components/SectionTag';
@@ -14,6 +16,33 @@ export const HomePage: React.FC = () => {
   const newsArticlesRaw = useQuery(api.articles.getPublic, { limit: 20 });
   const settingsRaw = useQuery(api.settings.get);
   const newsArticles = (newsArticlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
+
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const subscribe = useMutation(api.newsletters.subscribe);
+
+  const handleSubscribe = async () => {
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error('Por favor ingresa un email válido');
+      return;
+    }
+
+    setIsSubscribing(true);
+    try {
+      const result = await subscribe({ email });
+      if (result === 'subscribed' || result === 'resubscribed') {
+        toast.success('¡Te has suscrito con éxito al Newsletter!');
+        setEmail('');
+      } else if (result === 'already_subscribed') {
+        toast.info('Este correo ya se encuentra suscrito.');
+        setEmail('');
+      }
+    } catch (e) {
+      toast.error('Ocurrió un error al procesar la suscripción.');
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   // Determine Hero article based on settings or fallback (latest published)
   let heroNews = newsArticles.find(n => n._id === settingsRaw?.highlightedArticleId);
@@ -51,6 +80,10 @@ export const HomePage: React.FC = () => {
       <TrendingBar />
 
       <main>
+        <div className="container mx-auto px-5 md:px-10 lg:px-[60px] my-6">
+          <AdBanner position="hero" className="w-full h-[90px] md:h-[150px] lg:h-[200px]" />
+        </div>
+
         {/* Hero Section */}
         {heroNews && (
           <section className="mb-6 md:mb-10 lg:mb-12">
@@ -96,6 +129,10 @@ export const HomePage: React.FC = () => {
 
         <div className="container mx-auto px-5 md:px-10 lg:px-[60px] mb-6 md:mb-8">
           <Separator />
+        </div>
+
+        <div className="container mx-auto px-5 md:px-10 lg:px-[60px] my-8 flex justify-center">
+          <AdBanner position="sidebar" className="w-full md:w-[728px] h-[90px] md:h-[120px]" />
         </div>
 
         {/* Política Section */}

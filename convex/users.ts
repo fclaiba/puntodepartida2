@@ -163,6 +163,30 @@ export const resendVerificationCode = mutation({
 });
 
 // Get all users (Admin)
+// Update Profile
+export const updateProfile = mutation({
+    args: {
+        userId: v.id("users"),
+        avatarUrl: v.optional(v.string()),
+        bio: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const { userId, avatarUrl, bio } = args;
+
+        const user = await ctx.db.get(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const updates: Record<string, any> = {};
+        if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+        if (bio !== undefined) updates.bio = bio;
+
+        await ctx.db.patch(userId, updates);
+        return { success: true };
+    },
+});
+
 export const getAll = query({
     handler: async (ctx) => {
         return await ctx.db.query("users").collect();

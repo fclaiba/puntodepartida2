@@ -12,6 +12,8 @@ export default defineSchema({
         isVerified: v.optional(v.boolean()), // true if verified
         verificationCode: v.optional(v.string()), // Temporary OTP
         verificationCodeExpiresAt: v.optional(v.number()), // Timestamp for expiration
+        avatarUrl: v.optional(v.string()), // Optional profile picture URL
+        bio: v.optional(v.string()), // Optional user bio
     }).index("by_email", ["email"]),
 
     articles: defineTable({
@@ -32,9 +34,33 @@ export default defineSchema({
         source: v.optional(v.union(v.literal("internal"), v.literal("external"))),
         storageId: v.optional(v.id("_storage")),
         views: v.optional(v.number()),
+        isPremium: v.optional(v.boolean()),
+        metaTitle: v.optional(v.string()),
+        metaDescription: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
     })
         .index("by_section", ["section"])
         .index("by_date", ["date"]),
+
+    advertisements: defineTable({
+        title: v.string(),
+        imageUrl: v.string(),
+        targetUrl: v.string(),
+        position: v.union(v.literal("hero"), v.literal("sidebar"), v.literal("in-article")),
+        active: v.boolean(),
+        impressions: v.number(),
+        clicks: v.number(),
+        createdAt: v.string(),
+    })
+        .index("by_active", ["active"])
+        .index("by_position", ["position"]),
+
+    newsletter_subscribers: defineTable({
+        email: v.string(),
+        status: v.union(v.literal("active"), v.literal("unsubscribed")),
+        subscribedAt: v.string(),
+    }).index("by_email", ["email"])
+        .index("by_status", ["status"]),
 
     article_views: defineTable({
         articleId: v.id("articles"),
@@ -171,4 +197,25 @@ export default defineSchema({
         durationMs: v.optional(v.number()),
         occurredAt: v.string(),
     }).index("by_timestamp", ["occurredAt"]),
+
+    bookmarks: defineTable({
+        userId: v.id("users"),
+        articleId: v.id("articles"),
+        createdAt: v.string(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_article", ["articleId"])
+        .index("by_user_article", ["userId", "articleId"]),
+
+    push_subscriptions: defineTable({
+        endpoint: v.string(),
+        keys: v.object({
+            p256dh: v.string(),
+            auth: v.string()
+        }),
+        userId: v.optional(v.id("users")), // Optional, if they are logged in.
+        createdAt: v.string(), // ISO string
+    })
+        .index("by_endpoint", ["endpoint"])
+        .index("by_user", ["userId"]),
 });

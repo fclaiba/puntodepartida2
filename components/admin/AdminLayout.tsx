@@ -13,7 +13,9 @@ import {
   MessageCircle,
   BarChart3,
   Activity,
-  BookOpen
+  BookOpen,
+  Megaphone,
+  Send
 } from 'lucide-react';
 import { getRoleLabel } from '../../data/adminData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -135,6 +137,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: MessageCircle, label: 'Comentarios', path: '/panel/comments', badge: pendingComments > 0 ? pendingComments : undefined },
     { icon: BarChart3, label: 'Analytics', path: '/panel/analytics' },
     { icon: Activity, label: 'Actividad', path: '/panel/activity' },
+    { icon: Megaphone, label: 'Publicidad', path: '/panel/ads', adminOnly: true },
+    { icon: Send, label: 'Newsletters', path: '/panel/newsletters', adminOnly: true },
     { icon: Users, label: 'Usuarios', path: '/panel/users', adminOnly: true },
     { icon: Settings, label: 'Configuración', path: '/panel/settings', adminOnly: true }
   ];

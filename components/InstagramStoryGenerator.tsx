@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Download, Instagram, Check } from 'lucide-react';
 import { NewsArticle, NewsSection } from '../data/newsData';
 import { StoryTemplateSelector, StoryTemplate, getTemplateStyles } from './StoryTemplateSelector';
+import { toast } from 'sonner';
 
 // Helper function to get section colors
 const getSectionColor = (section: NewsSection): string => {
@@ -349,7 +350,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
       }
     } catch (err) {
       console.error('Story generation error:', err);
-      alert('Error al generar la imagen. Vuelve a intentar.');
+      toast.error('Error al generar la imagen. Vuelve a intentar.');
     } finally {
       setIsGenerating(false);
     }
@@ -380,7 +381,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
         });
       } else {
         downloadImage();
-        alert('Descarga completada. Ahora puedes subirla a Instagram Stories y agregar el link manualmente.');
+        toast.success('Descarga completada. Ahora puedes subirla a Instagram Stories y agregar el link manualmente.');
       }
     } catch {
       downloadImage();
@@ -389,7 +390,7 @@ export const InstagramStoryGenerator: React.FC<InstagramStoryGeneratorProps> = (
 
   const copyLink = () => {
     navigator.clipboard.writeText(articleUrl);
-    alert('¡Link copiado al portapapeles!');
+    toast.success('¡Link copiado al portapapeles!');
   };
 
   useEffect(() => {

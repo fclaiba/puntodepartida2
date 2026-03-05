@@ -7,6 +7,8 @@ import { HomePage } from './pages/HomePage';
 import { SectionPage } from './pages/SectionPage';
 import { NewsDetailPage } from './pages/NewsDetailPage';
 import { SearchPage } from './pages/SearchPage';
+import { SavedArticlesPage } from './pages/SavedArticlesPage';
+import { UserProfilePage } from './pages/UserProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AboutPage } from './pages/AboutPage';
 import { ExtrateguiaPage } from './pages/ExtrateguiaPage';
@@ -20,6 +22,8 @@ import { AdminSettings } from './pages/admin/AdminSettings';
 import { CommentModeration } from './pages/admin/CommentModeration';
 import { Analytics } from './pages/admin/Analytics';
 import { ActivityLog } from './pages/admin/ActivityLog';
+import { AdsManager } from './pages/admin/AdsManager';
+import { NewslettersManager } from './pages/admin/NewslettersManager';
 import { Toaster } from './components/ui/sonner';
 import { AdminProvider } from './contexts/AdminContext';
 import { VolumeList } from './pages/admin/academic/VolumeList';
@@ -44,6 +48,8 @@ function App() {
           <Route path="/panel/comments" element={<CommentModeration />} />
           <Route path="/panel/analytics" element={<Analytics />} />
           <Route path="/panel/activity" element={<ActivityLog />} />
+          <Route path="/panel/ads" element={<AdsManager />} />
+          <Route path="/panel/newsletters" element={<NewslettersManager />} />
           <Route path="/panel/users" element={<UserManagement />} />
           <Route path="/panel/settings" element={<AdminSettings />} />
           <Route path="/panel/extrategia" element={<VolumeList />} />
@@ -54,7 +60,7 @@ function App() {
 
           {/* Public Routes - Con Header/Footer */}
           <Route path="/*" element={
-            <div className="min-h-screen bg-white flex flex-col">
+            <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col transition-colors">
               <Header />
               <div className="flex-1">
                 <Routes>
@@ -66,6 +72,8 @@ function App() {
                   <Route path="/opinion" element={<SectionPage />} />
                   <Route path="/extrategia" element={<ExtrateguiaPage />} />
                   <Route path="/extrategia/:volumeId/:articleId" element={<AcademicArticlePage />} />
+                  <Route path="/guardados" element={<SavedArticlesPage />} />
+                  <Route path="/mi-perfil" element={<UserProfilePage />} />
                   <Route path="/noticia/:id" element={<NewsDetailPage />} />
                   <Route path="/buscar" element={<SearchPage />} />
                   <Route path="/sobre-nosotros" element={<AboutPage />} />

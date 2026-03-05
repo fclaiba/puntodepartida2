@@ -13,7 +13,7 @@ export const ExtrateguiaPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 transition-colors">
       {/* Hero Section */}
       <div
         className="relative py-16 md:py-24 lg:py-32 overflow-hidden"
@@ -122,7 +122,7 @@ export const ExtrateguiaPage: React.FC = () => {
                   Nuestra Misión
                 </h2>
                 <div
-                  className="text-gray-700 space-y-4"
+                  className="text-gray-700 dark:text-gray-300 space-y-4"
                   style={{ fontSize: '16px', lineHeight: '1.8' }}
                 >
                   <p>
@@ -163,14 +163,14 @@ export const ExtrateguiaPage: React.FC = () => {
             >
               Volúmenes Publicados
             </h2>
-            <p className="text-gray-600" style={{ fontSize: '17px' }}>
+            <p className="text-gray-600 dark:text-gray-400" style={{ fontSize: '17px' }}>
               Explora nuestra colección de ediciones trimestrales
             </p>
           </div>
 
           <div className="space-y-16">
             {volumes.length === 0 ? (
-              <div className="text-center text-gray-500">No hay volúmenes publicados aún.</div>
+              <div className="text-center text-gray-500 dark:text-gray-400">No hay volúmenes publicados aún.</div>
             ) : (
               volumes.map((volume: any, index: number) => (
                 <motion.div
@@ -178,7 +178,7 @@ export const ExtrateguiaPage: React.FC = () => {
                   initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index + 0.4 }}
-                  className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300"
+                  className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300"
                 >
                   <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
                     {/* Cover Image */}
@@ -224,7 +224,7 @@ export const ExtrateguiaPage: React.FC = () => {
                     {/* Content */}
                     <div className="lg:col-span-3 p-8 md:p-10 lg:p-12">
                       {/* Meta Info */}
-                      <div className="flex flex-wrap items-center gap-6 mb-6 text-sm text-gray-600">
+                      <div className="flex flex-wrap items-center gap-6 mb-6 text-sm text-gray-600 dark:text-gray-400">
                         <div className="flex items-center gap-2">
                           <Calendar size={18} />
                           <span style={{ fontWeight: 600 }}>
@@ -239,7 +239,7 @@ export const ExtrateguiaPage: React.FC = () => {
 
                       {/* Description */}
                       <p
-                        className="mb-8 text-gray-700"
+                        className="mb-8 text-gray-700 dark:text-gray-300"
                         style={{ fontSize: '16px', lineHeight: '1.8' }}
                       >
                         {volume.description}
@@ -247,7 +247,7 @@ export const ExtrateguiaPage: React.FC = () => {
 
                       {/* Editorial Preview */}
                       {volume.editorial && (
-                        <div className="mb-8 p-6 rounded-xl bg-gray-50">
+                        <div className="mb-8 p-6 rounded-xl bg-gray-50 dark:bg-gray-800/50">
                           <h4
                             className="mb-3"
                             style={{
@@ -260,7 +260,7 @@ export const ExtrateguiaPage: React.FC = () => {
                             EDITORIAL
                           </h4>
                           <p
-                            className="text-gray-700"
+                            className="text-gray-700 dark:text-gray-300"
                             style={{ fontSize: '14px', lineHeight: '1.7' }}
                           >
                             {volume.editorial.split('\n\n')[0]}...
@@ -285,7 +285,7 @@ export const ExtrateguiaPage: React.FC = () => {
                           {volume.articles.map((article: any) => (
                             <div
                               key={article._id}
-                              className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gradient-to-r hover:from-purple-50 hover:to-teal-50 transition-all duration-200 group"
+                              className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/30 hover:bg-gradient-to-r hover:from-purple-50 hover:to-teal-50 dark:hover:from-purple-900/20 dark:hover:to-teal-900/20 transition-all duration-200 group"
                             >
                               <div
                                 className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"
@@ -300,15 +300,15 @@ export const ExtrateguiaPage: React.FC = () => {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h5
-                                  className="mb-1 group-hover:text-[var(--color-brand-primary)] transition-colors"
+                                  className="mb-1 group-hover:text-[var(--color-brand-primary)] dark:text-gray-100 dark:group-hover:text-[var(--color-brand-primary)] transition-colors"
                                   style={{ fontSize: '15px', fontWeight: 700, lineHeight: '1.4' }}
                                 >
                                   {article.title}
                                 </h5>
-                                <p className="text-gray-600 text-sm mb-2">
+                                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
                                   {article.author}
                                 </p>
-                                <p className="text-gray-500 text-xs line-clamp-2">
+                                <p className="text-gray-500 dark:text-gray-400 text-xs line-clamp-2">
                                   {article.abstract}
                                 </p>
                               </div>
@@ -376,7 +376,7 @@ export const ExtrateguiaPage: React.FC = () => {
             </h3>
 
             <p
-              className="mb-8 text-gray-600 max-w-2xl mx-auto"
+              className="mb-8 text-gray-600 dark:text-gray-300 max-w-2xl mx-auto"
               style={{ fontSize: '17px', lineHeight: '1.8' }}
             >
               Invitamos a académicos, investigadores y pensadores comprometidos con los valores

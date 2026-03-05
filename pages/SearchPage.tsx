@@ -12,7 +12,7 @@ export const SearchPage: React.FC = () => {
 
   // Fetch all public articles for client-side filtering
   const allArticlesRaw = useQuery(api.articles.getPublic, {});
-  const allArticles = (allArticlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
+  const allArticles = (allArticlesRaw || []).filter((a: any) => a !== null);
 
   const activeQueryParam = (searchParams.get('q') || '').trim();
 
@@ -22,7 +22,7 @@ export const SearchPage: React.FC = () => {
     }
 
     const searchTerm = activeQueryParam.toLowerCase();
-    return allArticles.filter(article =>
+    return allArticles.filter((article: any) =>
       article.title.toLowerCase().includes(searchTerm) ||
       article.description.toLowerCase().includes(searchTerm) ||
       article.content.toLowerCase().includes(searchTerm) ||
@@ -41,7 +41,7 @@ export const SearchPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors">
       {/* Breadcrumb */}
       <div className="container mx-auto px-4 py-6">
         <Link
@@ -58,13 +58,13 @@ export const SearchPage: React.FC = () => {
         {/* Search Bar */}
         <div className="max-w-3xl mx-auto mb-12">
           <h1
-            className="mb-6 text-center"
+            className="mb-6 text-center text-gray-900 dark:text-gray-100"
             style={{ fontSize: 'clamp(24px, 6vw, 36px)', fontWeight: 800 }}
           >
             Buscar Noticias
           </h1>
 
-          <form onSubmit={handleSearch} className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl focus-within:border-[var(--color-brand-primary)] transition-colors">
+          <form onSubmit={handleSearch} className="flex items-center gap-3 p-4 border-2 border-gray-200 dark:border-gray-800 rounded-xl focus-within:border-[var(--color-brand-primary)] transition-colors dark:bg-gray-900">
             <Search size={24} className="text-gray-400" />
             <input
               ref={inputRef}
@@ -96,7 +96,7 @@ export const SearchPage: React.FC = () => {
           <div className="max-w-6xl mx-auto">
             <div className="mb-6">
               <h2
-                className="text-gray-700"
+                className="text-gray-700 dark:text-gray-300"
                 style={{ fontSize: '18px', fontWeight: 600 }}
               >
                 {results.length > 0
@@ -108,7 +108,7 @@ export const SearchPage: React.FC = () => {
 
             {results.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {results.map((article) => (
+                {results.map((article: any) => (
                   <Link key={article._id} to={`/noticia/${article._id}`}>
                     <NewsCard
                       variant="standard"

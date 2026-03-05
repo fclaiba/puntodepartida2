@@ -10,14 +10,19 @@
 
 import type * as academic from "../academic.js";
 import type * as activity_logs from "../activity_logs.js";
+import type * as ads from "../ads.js";
 import type * as analytics from "../analytics.js";
 import type * as articles from "../articles.js";
+import type * as bookmarks from "../bookmarks.js";
 import type * as comments from "../comments.js";
 import type * as email from "../email.js";
 import type * as http from "../http.js";
 import type * as lib_tracking from "../lib/tracking.js";
 import type * as lib_trackingSchemas from "../lib/trackingSchemas.js";
 import type * as migrations from "../migrations.js";
+import type * as newsletters from "../newsletters.js";
+import type * as notifications from "../notifications.js";
+import type * as push from "../push.js";
 import type * as seed from "../seed.js";
 import type * as seed_data from "../seed_data.js";
 import type * as settings from "../settings.js";
@@ -34,14 +39,19 @@ import type {
 declare const fullApi: ApiFromModules<{
   academic: typeof academic;
   activity_logs: typeof activity_logs;
+  ads: typeof ads;
   analytics: typeof analytics;
   articles: typeof articles;
+  bookmarks: typeof bookmarks;
   comments: typeof comments;
   email: typeof email;
   http: typeof http;
   "lib/tracking": typeof lib_tracking;
   "lib/trackingSchemas": typeof lib_trackingSchemas;
   migrations: typeof migrations;
+  newsletters: typeof newsletters;
+  notifications: typeof notifications;
+  push: typeof push;
   seed: typeof seed;
   seed_data: typeof seed_data;
   settings: typeof settings;

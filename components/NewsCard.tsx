@@ -27,7 +27,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
         transition={{ duration: 0.3 }}
         className={`group cursor-pointer ${className}`}
       >
-        <div className="flex gap-3 md:gap-4 bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all hover:shadow-lg">
+        <div className="flex gap-3 md:gap-4 bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-lg">
           <div className="relative w-28 sm:w-32 md:w-40 flex-shrink-0">
             <ImageWithFallback
               src={imageUrl}
@@ -38,9 +38,9 @@ export const NewsCard: React.FC<NewsCardProps> = ({
           <div className="flex-1 p-3 md:p-4 flex flex-col justify-between">
             <div>
               <SectionTag section={section} variant="light" className="mb-2" />
-              <h3 
-                className="line-clamp-2 group-hover:text-[var(--color-brand-primary)] transition-colors"
-                style={{ 
+              <h3
+                className="line-clamp-2 text-gray-900 dark:text-gray-100 group-hover:text-[var(--color-brand-primary)] dark:group-hover:text-[var(--color-brand-primary)] transition-colors"
+                style={{
                   fontSize: 'clamp(14px, 3vw, 16px)',
                   fontWeight: 600,
                   lineHeight: '1.4'
@@ -62,14 +62,14 @@ export const NewsCard: React.FC<NewsCardProps> = ({
         transition={{ duration: 0.3 }}
         className={`group cursor-pointer ${className}`}
       >
-        <div className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all hover:shadow-lg">
+        <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-lg">
           <div className="relative aspect-[4/3] overflow-hidden">
             <ImageWithFallback
               src={imageUrl}
               alt={title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            <div 
+            <div
               className="absolute inset-0"
               style={{
                 background: 'linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.1) 50%, transparent 70%)'
@@ -80,9 +80,9 @@ export const NewsCard: React.FC<NewsCardProps> = ({
             </div>
           </div>
           <div className="p-3 md:p-4">
-            <h3 
-              className="line-clamp-2 group-hover:text-[var(--color-brand-primary)] transition-colors"
-              style={{ 
+            <h3
+              className="line-clamp-2 text-gray-900 dark:text-gray-100 group-hover:text-[var(--color-brand-primary)] transition-colors"
+              style={{
                 fontSize: 'clamp(13px, 2.5vw, 14px)',
                 fontWeight: 600,
                 lineHeight: '1.4'
@@ -110,19 +110,19 @@ export const NewsCard: React.FC<NewsCardProps> = ({
               alt={title}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div 
+            <div
               className="absolute inset-0"
               style={{
                 background: 'linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.2) 70%, transparent 100%)'
               }}
             />
           </div>
-          
+
           <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-6">
             <SectionTag section={section} variant="dark" className="mb-2 md:mb-3" />
-            <h2 
+            <h2
               className="text-white mb-1 md:mb-2 line-clamp-3"
-              style={{ 
+              style={{
                 fontSize: 'clamp(18px, 4vw, 32px)',
                 fontWeight: 700,
                 lineHeight: '1.2',
@@ -132,9 +132,9 @@ export const NewsCard: React.FC<NewsCardProps> = ({
               {title}
             </h2>
             {description && (
-              <p 
+              <p
                 className="text-white/95 line-clamp-2 hidden sm:block"
-                style={{ 
+                style={{
                   fontSize: 'clamp(13px, 2vw, 14px)',
                   fontWeight: 400,
                   lineHeight: '1.5',
@@ -157,14 +157,14 @@ export const NewsCard: React.FC<NewsCardProps> = ({
       transition={{ duration: 0.3 }}
       className={`group cursor-pointer ${className}`}
     >
-      <div className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all hover:shadow-lg">
+      <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-lg">
         <div className="relative aspect-[16/10] overflow-hidden">
           <ImageWithFallback
             src={imageUrl}
             alt={title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <div 
+          <div
             className="absolute inset-0"
             style={{
               background: 'linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.1) 50%, transparent 70%)'
@@ -174,11 +174,11 @@ export const NewsCard: React.FC<NewsCardProps> = ({
             <SectionTag section={section} variant="dark" />
           </div>
         </div>
-        
+
         <div className="p-4 md:p-5">
-          <h3 
-            className="mb-2 line-clamp-2 group-hover:text-[var(--color-brand-primary)] transition-colors"
-            style={{ 
+          <h3
+            className="mb-2 line-clamp-2 text-gray-900 dark:text-gray-100 group-hover:text-[var(--color-brand-primary)] transition-colors"
+            style={{
               fontSize: 'clamp(16px, 3vw, 18px)',
               fontWeight: 600,
               lineHeight: '1.4'
@@ -187,9 +187,9 @@ export const NewsCard: React.FC<NewsCardProps> = ({
             {title}
           </h3>
           {description && (
-            <p 
-              className="text-gray-600 line-clamp-2 hidden sm:block"
-              style={{ 
+            <p
+              className="text-gray-600 dark:text-gray-400 line-clamp-2 hidden sm:block"
+              style={{
                 fontSize: 'clamp(13px, 2vw, 14px)',
                 lineHeight: '1.5'
               }}

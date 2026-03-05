@@ -273,16 +273,18 @@ const ArticleListContent: React.FC = () => {
                           </Link>
                           {canEdit && (
                             <>
-                              <button
-                                onClick={() => setHighlightedArticle(article._id, article.title)}
-                                className={`p-2 rounded-lg transition-colors ${siteSettings.highlightedArticleId === article._id
-                                  ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                                  : 'hover:bg-gray-200 text-gray-500 hover:text-yellow-600'
-                                  }`}
-                                title={siteSettings.highlightedArticleId === article._id ? "Artículo Principal" : "Fijar como Principal"}
-                              >
-                                <Star size={18} className={siteSettings.highlightedArticleId === article._id ? "fill-yellow-600" : ""} />
-                              </button>
+                              {currentUser?.role === 'admin' && (
+                                <button
+                                  onClick={() => setHighlightedArticle(article._id, article.title)}
+                                  className={`p-2 rounded-lg transition-colors ${siteSettings.highlightedArticleId === article._id
+                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                                    : 'hover:bg-gray-200 text-gray-500 hover:text-yellow-600'
+                                    }`}
+                                  title={siteSettings.highlightedArticleId === article._id ? "Artículo Principal" : "Fijar como Principal"}
+                                >
+                                  <Star size={18} className={siteSettings.highlightedArticleId === article._id ? "fill-yellow-600" : ""} />
+                                </button>
+                              )}
                               <Link
                                 to={`/panel/articles/edit/${article._id}`}
                                 className="p-2 hover:bg-gray-200 rounded-lg transition-colors"

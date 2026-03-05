@@ -1,83 +1,78 @@
-import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
 
-// Get comments for an article (Admin view - all comments)
-export const getByArticle = query({
-    args: { articleId: v.id("articles") },
+export const create = mutation({
+    args: {
+        articleId: v.id("articles"),
+        author: v.string(),
+        email: v.string(),
+        content: v.string()
+    },
     handler: async (ctx, args) => {
-        return await ctx.db
-            .query("comments")
-            .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-            .collect();
+        // By default comments are pending if moderation is enabled, but let's check settings
+        const settings = await ctx.db.query("settings").first();
+        const requireModeration = settings?.moderateComments ?? true;
+
+        const status = requireModeration ? "pending" : "approved";
+
+        await ctx.db.insert("comments", {
+            articleId: args.articleId,
+            author: args.author,
+            email: args.email,
+            content: args.content,
+            date: new Date().toISOString(),
+            status,
+        });
+
+        return status;
     },
 });
 
-// Get public comments (Approved only)
 export const getPublicByArticle = query({
     args: { articleId: v.id("articles") },
     handler: async (ctx, args) => {
         const comments = await ctx.db
             .query("comments")
             .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+            .filter((q) => q.eq(q.field("status"), "approved"))
+            .order("desc")
             .collect();
 
-        return comments.filter(c => c.status === "approved").sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return comments;
     },
 });
 
-// Get all comments (Admin)
+export const getPendingComments = query({
+    handler: async (ctx) => {
+        return await ctx.db
+            .query("comments")
+            .filter((q) => q.eq(q.field("status"), "pending"))
+            .order("desc")
+            .collect();
+    },
+});
+
 export const getAll = query({
     handler: async (ctx) => {
-        return await ctx.db.query("comments").order("desc").collect();
+        const comments = await ctx.db.query("comments").order("desc").collect();
+        return Promise.all(comments.map(async (comment) => {
+            const article = await ctx.db.get(comment.articleId);
+            return { ...comment, articleTitle: article?.title || "Artículo Eliminado" };
+        }));
     },
 });
 
-// Create comment
-export const create = mutation({
-    args: {
-        articleId: v.id("articles"),
-        author: v.string(),
-        email: v.string(),
-        content: v.string(),
-    },
-    handler: async (ctx, args) => {
-        return await ctx.db.insert("comments", {
-            ...args,
-            date: new Date().toISOString(),
-            status: "pending",
-        });
-    },
-});
-
-// Moderate comment (Approve/Reject)
+// Admin mutations
 export const moderate = mutation({
-    args: {
-        id: v.id("comments"),
-        status: v.union(v.literal("approved"), v.literal("rejected")),
-    },
+    args: { id: v.id("comments"), status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")) },
     handler: async (ctx, args) => {
         await ctx.db.patch(args.id, { status: args.status });
-
-        await ctx.db.insert("activity_logs", {
-            action: "comment_moderate",
-            details: `Moderated comment ${args.id} to ${args.status}`,
-            timestamp: new Date().toISOString(),
-            userId: "admin",
-        });
     },
 });
 
-// Delete comment
 export const remove = mutation({
     args: { id: v.id("comments") },
     handler: async (ctx, args) => {
         await ctx.db.delete(args.id);
-
-        await ctx.db.insert("activity_logs", {
-            action: "comment_delete",
-            details: `Deleted comment ${args.id}`,
-            timestamp: new Date().toISOString(),
-            userId: "admin",
-        });
     },
 });

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Menu, Search, X } from 'lucide-react';
+import { Menu, Search, X, Bookmark, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { NewsTicker } from './NewsTicker';
+import { ThemeToggle } from './ThemeToggle';
 
 const navItems = [
   { label: 'Política', href: '/politica' },
@@ -30,7 +31,7 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
         <NewsTicker />
         <div className="container mx-auto px-5 md:px-10 lg:px-[60px]">
           {/* Top Bar */}
@@ -67,11 +68,10 @@ export const Header: React.FC = () => {
                     PDP
                   </div>
                   <div
-                    className="tracking-wide leading-none mt-0.5 hidden sm:block"
+                    className="tracking-wide leading-none mt-0.5 hidden sm:block text-[var(--color-brand-secondary)] dark:text-white/70"
                     style={{
                       fontSize: '10px',
                       fontWeight: 400,
-                      color: 'var(--color-brand-secondary)',
                       letterSpacing: '0.1em'
                     }}
                   >
@@ -81,25 +81,44 @@ export const Header: React.FC = () => {
               </Link>
             </div>
 
-            {/* Search Button */}
-            <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2.5 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation active:scale-95"
-              aria-label="Search"
-            >
-              <Search size={20} />
-            </button>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              <ThemeToggle />
+              <Link
+                to="/guardados"
+                className="p-2 sm:p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors touch-manipulation active:scale-95 text-gray-600 dark:text-gray-300 hover:text-[var(--color-brand-primary)] dark:hover:text-[var(--color-brand-primary)]"
+                aria-label="Mis Guardados"
+                title="Mis Guardados"
+              >
+                <Bookmark size={20} />
+              </Link>
+              <Link
+                to="/mi-perfil"
+                className="p-2 sm:p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors touch-manipulation active:scale-95 text-gray-600 dark:text-gray-300 hover:text-[var(--color-brand-primary)] dark:hover:text-[var(--color-brand-primary)] flex items-center justify-center"
+                aria-label="Mi Perfil"
+                title="Mi Perfil"
+              >
+                <User size={20} />
+              </Link>
+              <button
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="p-2 sm:p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors touch-manipulation active:scale-95 text-gray-600 dark:text-gray-300"
+                aria-label="Search"
+              >
+                <Search size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center justify-center gap-8 pb-4 border-t border-gray-100 pt-4">
+          <nav className="hidden lg:flex items-center justify-center gap-8 pb-4 border-t border-gray-100 dark:border-gray-800 pt-4">
             {navItems.map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
                 className={`relative group py-1 transition-colors ${item.isSpecial
                   ? 'text-[var(--color-brand-primary)] font-bold'
-                  : 'text-gray-700 hover:text-[var(--color-brand-primary)]'
+                  : 'text-gray-700 dark:text-gray-300 hover:text-[var(--color-brand-primary)]'
                   }`}
                 style={{
                   fontSize: item.isSpecial ? '14px' : '14px',

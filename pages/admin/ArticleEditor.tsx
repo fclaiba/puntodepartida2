@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { Save, Eye, ArrowLeft, Upload, Link as LinkIcon, X } from 'lucide-react';
+import { Save, Eye, ArrowLeft, Upload, Link as LinkIcon, X, Check } from 'lucide-react';
 import { NewsSection } from '../../data/newsData';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -11,9 +11,10 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
 import { useConvexUpload } from '../../hooks/useConvexUpload';
-import { GripVertical, Plus, Trash2, Image as ImageIcon, Type, Link2 } from 'lucide-react';
+import { GripVertical, Plus, Trash2, Image as ImageIcon, Type, Link2, Globe, Bell } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../components/ui/alert-dialog';
 
 export type ArticleBlockType = 'text' | 'image' | 'embed';
 
@@ -46,6 +47,7 @@ const ArticleEditorContent: React.FC = () => {
   const article = useQuery(api.articles.getById, isEditing ? { id: id as Id<"articles"> } : "skip");
   const create = useMutation(api.articles.create);
   const update = useMutation(api.articles.update);
+  const broadcastPush = useMutation(api.notifications.broadcastNotification);
   const uploadFile = useConvexUpload();
 
   const [imageSource, setImageSource] = useState<'url' | 'upload'>('url');
@@ -62,7 +64,13 @@ const ArticleEditorContent: React.FC = () => {
     readTime: 5,
     imageUrl: '',
     content: '[]', // We will store the blocks as a JSON string
-    featured: false
+    featured: false,
+    status: 'published' as 'draft' | 'scheduled' | 'published',
+    publishDate: '',
+    isPremium: false,
+    metaTitle: '',
+    metaDescription: '',
+    ogImage: ''
   });
 
   const [blocks, setBlocks] = useState<ArticleBlock[]>([
@@ -71,7 +79,9 @@ const ArticleEditorContent: React.FC = () => {
 
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isPushConfirmOpen, setIsPushConfirmOpen] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
 
   // Per-block image upload state
@@ -130,7 +140,13 @@ const ArticleEditorContent: React.FC = () => {
         readTime: article.readTime,
         imageUrl: article.imageUrl,
         content: article.content,
-        featured: article.featured || false
+        featured: article.featured || false,
+        status: (article.status as 'draft' | 'scheduled' | 'published') || 'published',
+        publishDate: article.publishDate || '',
+        isPremium: article.isPremium || false,
+        metaTitle: article.metaTitle || '',
+        metaDescription: article.metaDescription || '',
+        ogImage: article.ogImage || ''
       });
       setPreviewUrl(article.imageUrl);
 
@@ -203,6 +219,51 @@ const ArticleEditorContent: React.FC = () => {
       setFormData(prev => ({ ...prev, imageUrl: '' }));
     }
   };
+
+  // Autosave Draft
+  useEffect(() => {
+    if (!isEditing || !id || isSubmitting) return;
+
+    const timeoutId = setTimeout(async () => {
+      // Don't autosave if image is still uploading
+      const stillUploading = Object.values(blockUploading).some(v => v);
+      if (stillUploading) return;
+
+      const trimmedTitle = formData.title.trim();
+      if (!trimmedTitle) return; // Need at least a title
+
+      setSaveStatus('saving');
+      try {
+        const blocksJson = JSON.stringify(blocks);
+        const updatePayload: Parameters<typeof update>[0] = {
+          id: id as Id<"articles">,
+          title: trimmedTitle,
+          description: formData.description.trim(),
+          section: formData.section,
+          author: formData.author.trim(),
+          ...(formData.authorBio.trim() ? { authorBio: formData.authorBio.trim() } : {}),
+          readTime: formData.readTime,
+          content: blocksJson,
+          featured: formData.featured,
+          status: formData.status,
+          isPremium: formData.isPremium,
+          ...(formData.publishDate ? { publishDate: formData.publishDate } : {}),
+          ...(formData.metaTitle ? { metaTitle: formData.metaTitle } : {}),
+          ...(formData.metaDescription ? { metaDescription: formData.metaDescription } : {}),
+          ...(formData.ogImage ? { ogImage: formData.ogImage } : {}),
+        };
+
+        await update(updatePayload);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      } catch (error) {
+        console.error("Autosave error:", error);
+        setSaveStatus('idle');
+      }
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, blocks, isEditing, id, isSubmitting, blockUploading, update]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,7 +359,12 @@ const ArticleEditorContent: React.FC = () => {
           readTime: formData.readTime,
           content: blocksJson,
           featured: formData.featured,
-          status: "published",
+          status: formData.status,
+          isPremium: formData.isPremium,
+          ...(formData.publishDate ? { publishDate: formData.publishDate } : {}),
+          ...(formData.metaTitle ? { metaTitle: formData.metaTitle } : {}),
+          ...(formData.metaDescription ? { metaDescription: formData.metaDescription } : {}),
+          ...(formData.ogImage ? { ogImage: formData.ogImage } : {}),
           ...(imageSource === 'url' ? { imageUrl: trimmedImageUrl } : {}),
           ...(storageId ? { storageId } : {}),
         };
@@ -315,7 +381,12 @@ const ArticleEditorContent: React.FC = () => {
           readTime: formData.readTime,
           content: blocksJson,
           featured: formData.featured,
-          status: "published",
+          status: formData.status,
+          isPremium: formData.isPremium,
+          ...(formData.publishDate ? { publishDate: formData.publishDate } : {}),
+          ...(formData.metaTitle ? { metaTitle: formData.metaTitle } : {}),
+          ...(formData.metaDescription ? { metaDescription: formData.metaDescription } : {}),
+          ...(formData.ogImage ? { ogImage: formData.ogImage } : {}),
           imageUrl: imageSource === 'url' ? trimmedImageUrl : '',
           ...(storageId ? { storageId } : {}),
         };
@@ -350,6 +421,36 @@ const ArticleEditorContent: React.FC = () => {
     };
   }, []);
 
+  const handleSendPush = async () => {
+    if (!formData.title || !formData.description) {
+      toast.error('El artículo debe tener título y bajada para ser enviado por Push.');
+      return;
+    }
+
+    setIsPushConfirmOpen(true);
+  };
+
+  const confirmSendPush = async () => {
+    setIsPushConfirmOpen(false);
+    try {
+      const result = await broadcastPush({
+        title: '📰 ' + formData.title,
+        body: formData.description,
+        url: isEditing ? `/noticia/${id}` : '/', // Fallback to index if drafting
+        icon: formData.imageUrl || undefined
+      });
+
+      if (result && result.success) {
+        toast.success(`Notificación enviada a ${result.count} suscriptores.`);
+      } else {
+        toast.error(result?.error || 'Falló el envío de notificaciones.');
+      }
+    } catch (err) {
+      toast.error('Ocurrió un error al enviar las notificaciones.');
+      console.error(err);
+    }
+  };
+
   return (
     <AdminLayout>
       <motion.div
@@ -366,9 +467,13 @@ const ArticleEditorContent: React.FC = () => {
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800 }}>
-                {isEditing ? 'Editar Artículo' : 'Nuevo Artículo'}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800 }}>
+                  {isEditing ? 'Editar Artículo' : 'Nuevo Artículo'}
+                </h1>
+                {saveStatus === 'saving' && <span className="text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-1 rounded flex items-center gap-1"><div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div> Guardando...</span>}
+                {saveStatus === 'saved' && <span className="text-xs font-semibold bg-green-50 text-green-600 px-2 py-1 rounded flex items-center gap-1"><Check size={14} /> Guardado</span>}
+              </div>
               <p className="text-gray-600" style={{ fontSize: '14px' }}>
                 {isEditing ? 'Modifica los detalles del artículo' : 'Crea un nuevo artículo para publicar'}
               </p>
@@ -913,7 +1018,7 @@ const ArticleEditorContent: React.FC = () => {
                     </div>
 
                     <div className="pt-4 border-t border-gray-200">
-                      <label className="flex items-center gap-3 cursor-pointer">
+                      <label className="flex items-center gap-3 cursor-pointer mb-4">
                         <input
                           type="checkbox"
                           name="featured"
@@ -926,10 +1031,65 @@ const ArticleEditorContent: React.FC = () => {
                             Artículo destacado
                           </div>
                           <div className="text-gray-500 text-xs">
-                            Publicar inmediatamente
+                            Aparecerá fijado en la página principal
                           </div>
                         </div>
                       </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer mb-6">
+                        <input
+                          type="checkbox"
+                          name="isPremium"
+                          checked={formData.isPremium}
+                          onChange={handleChange}
+                          className="w-5 h-5 rounded border-gray-300 text-[var(--color-brand-primary)] focus:ring-[var(--color-brand-primary)]"
+                        />
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                            Contenido Premium
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            Requiere estar registrado para leerlo completo
+                          </div>
+                        </div>
+                      </label>
+
+                      <div className="mb-4">
+                        <label className="block mb-2" style={{ fontSize: '14px', fontWeight: 600 }}>
+                          Estado de publicación
+                        </label>
+                        <select
+                          name="status"
+                          value={formData.status}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all"
+                          style={{ fontSize: '14px' }}
+                        >
+                          <option value="draft">Borrador</option>
+                          <option value="published">Publicado</option>
+                          <option value="scheduled">Programado</option>
+                        </select>
+                      </div>
+
+                      {formData.status === 'scheduled' && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                          <label className="block mb-2 text-[var(--color-brand-primary)]" style={{ fontSize: '14px', fontWeight: 600 }}>
+                            Fecha y Hora de programación *
+                          </label>
+                          <input
+                            type="datetime-local"
+                            name="publishDate"
+                            value={formData.publishDate}
+                            onChange={handleChange}
+                            required={formData.status === 'scheduled'}
+                            className="w-full px-4 py-3 rounded-lg border border-[var(--color-brand-primary)]/50 bg-[var(--color-brand-primary)]/5 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all"
+                            style={{ fontSize: '14px' }}
+                          />
+                          <p className="text-xs text-[var(--color-brand-primary)]/70 mt-2">
+                            El artículo se publicará automáticamente en esta fecha.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1075,6 +1235,67 @@ const ArticleEditorContent: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Advanced SEO */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="mb-4 flex items-center gap-2" style={{ fontSize: '16px', fontWeight: 700 }}>
+                    <Globe size={18} className="text-[var(--color-brand-primary)]" />
+                    Optimización SEO
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="metaTitle" className="block mb-2 text-sm font-medium text-gray-700">
+                        Meta Título (opcional)
+                      </label>
+                      <input
+                        id="metaTitle"
+                        name="metaTitle"
+                        type="text"
+                        value={formData.metaTitle}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)] text-sm"
+                        placeholder="Título para Google (Max 60 chars)"
+                        maxLength={60}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Si está vacío, se usará el título del artículo.</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="metaDescription" className="block mb-2 text-sm font-medium text-gray-700">
+                        Meta Descripción (opcional)
+                      </label>
+                      <textarea
+                        id="metaDescription"
+                        name="metaDescription"
+                        value={formData.metaDescription}
+                        onChange={handleChange}
+                        rows={2}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)] text-sm resize-none"
+                        placeholder="Resumen atractivo para buscadores..."
+                        maxLength={160}
+                      />
+                      <p className={`text-xs mt-1 ${formData.metaDescription.length > 150 ? 'text-amber-500' : 'text-gray-500'}`}>
+                        {formData.metaDescription.length}/160 caracteres
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="ogImage" className="block mb-2 text-sm font-medium text-gray-700">
+                        Imagen Social (og:image) (opcional)
+                      </label>
+                      <input
+                        id="ogImage"
+                        name="ogImage"
+                        type="url"
+                        value={formData.ogImage}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)] text-sm"
+                        placeholder="https://ejemplo.com/social-preview.jpg"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Sino, se utilizará la imagen principal.</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Actions */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <button
@@ -1096,17 +1317,46 @@ const ArticleEditorContent: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => navigate('/panel/articles')}
-                    className="w-full px-6 py-3 rounded-lg border-2 border-gray-300 hover:border-gray-400 transition-colors"
+                    className="w-full px-6 py-3 rounded-lg border-2 border-gray-300 hover:border-gray-400 transition-colors mb-3"
                     style={{ fontSize: '14px', fontWeight: 600 }}
                   >
                     Cancelar
                   </button>
+
+                  {/* Notificación Push Action */}
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={handleSendPush}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-yellow-100 hover:bg-yellow-200 text-yellow-800 transition-all font-medium border border-yellow-200"
+                    >
+                      <Bell size={18} />
+                      Enviar Alerta Push
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </form>
         )}
       </motion.div>
+
+      <AlertDialog open={isPushConfirmOpen} onOpenChange={setIsPushConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar Alerta Push</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro que deseas enviar una notificación Push a todos los suscriptores? Esto enviará un mensaje directo e inmediato a los navegadores de todos los lectores registrados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSendPush} className="bg-yellow-600 hover:bg-yellow-700 text-white focus:ring-yellow-600">
+              Enviar Notificación
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
