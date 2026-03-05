@@ -9,6 +9,9 @@ export default defineSchema({
         role: v.union(v.literal("admin"), v.literal("editor"), v.literal("lector")),
         createdAt: v.string(),
         lastLogin: v.string(),
+        isVerified: v.optional(v.boolean()), // true if verified
+        verificationCode: v.optional(v.string()), // Temporary OTP
+        verificationCodeExpiresAt: v.optional(v.number()), // Timestamp for expiration
     }).index("by_email", ["email"]),
 
     articles: defineTable({
@@ -125,6 +128,8 @@ export default defineSchema({
         enableNewsletter: v.boolean(),
         articlesPerPage: v.optional(v.number()),
         googleAnalyticsId: v.optional(v.string()),
+        // Highlighted Single Article (Hero)
+        highlightedArticleId: v.optional(v.id("articles")),
     }),
 
     academic_volumes: defineTable({

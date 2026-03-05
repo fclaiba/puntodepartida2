@@ -12,9 +12,19 @@ import { SectionType } from '../components/SectionTag';
 
 export const HomePage: React.FC = () => {
   const newsArticlesRaw = useQuery(api.articles.getPublic, { limit: 20 });
+  const settingsRaw = useQuery(api.settings.get);
   const newsArticles = (newsArticlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
-  const heroNews = newsArticles.find(n => n.featured) || newsArticles[0];
+
+  // Determine Hero article based on settings or fallback (latest published)
+  let heroNews = newsArticles.find(n => n._id === settingsRaw?.highlightedArticleId);
+  if (!heroNews && newsArticles.length > 0) {
+    heroNews = newsArticles[0];
+  }
+
+  // Las noticias de Featured no incluyen al Hero actual para no duplicarlo ahí mismo arriba
   const featuredNews = newsArticles.filter(n => n.featured && n._id !== heroNews?._id).slice(0, 2);
+
+  // Las secciones muestran las últimas noticias sin excluir al Hero
   const politicaNews = newsArticles.filter(n => n.section === 'politica').slice(0, 3);
   const internacionalNews = newsArticles.filter(n => n.section === 'internacional').slice(0, 3);
   const compactNews = [

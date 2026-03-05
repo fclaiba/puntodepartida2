@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, Edit, Trash2, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, Eye, CheckCircle, XCircle, Star } from 'lucide-react';
 import { NewsSections } from '../../data/newsData';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ import { Id } from "@convex/_generated/dataModel";
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 const ArticleListContent: React.FC = () => {
-  const { currentUser } = useAdmin();
+  const { currentUser, siteSettings, updateSiteSettings } = useAdmin();
   const articlesRaw = useQuery(api.articles.getAll);
   const articles = (articlesRaw || []).filter((a): a is NonNullable<typeof a> => a !== null);
   const deleteArticle = useMutation(api.articles.remove);
@@ -41,6 +41,16 @@ const ArticleListContent: React.FC = () => {
       toast.success('Artículo eliminado con éxito');
     } catch (error) {
       toast.error('Error al eliminar el artículo');
+      console.error(error);
+    }
+  };
+
+  const setHighlightedArticle = async (id: string, title: string) => {
+    try {
+      await updateSiteSettings({ highlightedArticleId: id });
+      toast.success(`"${title}" es ahora el artículo principal destacado`);
+    } catch (error) {
+      toast.error('Error al destacar el artículo');
       console.error(error);
     }
   };
@@ -196,10 +206,15 @@ const ArticleListContent: React.FC = () => {
                           />
                           <div className="min-w-0">
                             <h3
-                              className="line-clamp-2 mb-1"
+                              className="line-clamp-2 mb-1 flex items-center gap-2"
                               style={{ fontSize: '14px', fontWeight: 600 }}
                             >
                               {article.title}
+                              {siteSettings.highlightedArticleId === article._id && (
+                                <span title="Artículo Principal Destacado">
+                                  <Star size={16} className="text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                </span>
+                              )}
                             </h3>
                             <p className="text-gray-500 text-xs">
                               {article.readTime} min lectura
@@ -258,6 +273,16 @@ const ArticleListContent: React.FC = () => {
                           </Link>
                           {canEdit && (
                             <>
+                              <button
+                                onClick={() => setHighlightedArticle(article._id, article.title)}
+                                className={`p-2 rounded-lg transition-colors ${siteSettings.highlightedArticleId === article._id
+                                  ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                                  : 'hover:bg-gray-200 text-gray-500 hover:text-yellow-600'
+                                  }`}
+                                title={siteSettings.highlightedArticleId === article._id ? "Artículo Principal" : "Fijar como Principal"}
+                              >
+                                <Star size={18} className={siteSettings.highlightedArticleId === article._id ? "fill-yellow-600" : ""} />
+                              </button>
                               <Link
                                 to={`/panel/articles/edit/${article._id}`}
                                 className="p-2 hover:bg-gray-200 rounded-lg transition-colors"

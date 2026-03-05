@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Eye, EyeOff } from 'lucide-react';
-import { motion } from 'motion/react';
+import { LogIn, Eye, EyeOff, Mail, CheckCircle, RefreshCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAdmin } from '../../contexts/AdminContext';
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +14,16 @@ export const AdminLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Verification State
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [verifySuccess, setVerifySuccess] = useState(false);
+
+  const verifyEmailCodeMutation = useMutation(api.users.verifyEmailCode);
+  const resendVerificationCodeMutation = useMutation(api.users.resendVerificationCode);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -32,10 +44,50 @@ export const AdminLogin: React.FC = () => {
       } else {
         setError('Email o contraseña incorrectos');
       }
-    } catch {
-      setError('Error al iniciar sesión');
+    } catch (err: any) {
+      if (err.message && err.message.includes('NOT_VERIFIED')) {
+        setShowVerificationModal(true);
+      } else {
+        setError('Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyError('');
+    setVerifying(true);
+
+    try {
+      await verifyEmailCodeMutation({ email, code: verificationCode });
+      setVerifySuccess(true);
+      setTimeout(async () => {
+        // Retry login after verification
+        const success = await login(email, password);
+        if (success) {
+          navigate('/panel');
+        } else {
+          setVerifyError('Error al iniciar sesión tras verificar');
+          setVerifySuccess(false);
+        }
+      }, 1500);
+    } catch (err: any) {
+      setVerifyError(err.message || 'Error al verificar el código');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      await resendVerificationCodeMutation({ email });
+      setVerifyError('');
+      // You could add a toast here like sonner
+      alert("Código reenviado a tu email.");
+    } catch (err: any) {
+      setVerifyError(err.message || 'Error al reenviar el código');
     }
   };
 
@@ -174,6 +226,96 @@ export const AdminLogin: React.FC = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Verification Modal */}
+      <AnimatePresence>
+        {showVerificationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative"
+            >
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                  <Mail size={32} />
+                </div>
+
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Revisa tu Email
+                </h2>
+
+                <p className="text-gray-600 mb-6 text-sm">
+                  Hemos enviado un código de verificación de 6 dígitos a <br />
+                  <span className="font-semibold text-gray-900">{email}</span>
+                </p>
+
+                {verifySuccess ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center justify-center py-4 space-y-3"
+                  >
+                    <CheckCircle className="text-green-500 w-12 h-12" />
+                    <p className="text-green-700 font-medium">¡Cuenta verificada!</p>
+                    <p className="text-sm text-gray-500">Iniciando sesión...</p>
+                  </motion.div>
+                ) : (
+                  <form onSubmit={handleVerify} className="space-y-4">
+                    {verifyError && (
+                      <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm text-left">
+                        {verifyError}
+                      </div>
+                    )}
+
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Ingresa el código"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        className="w-full text-center px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-2xl tracking-widest font-mono transition-all"
+                        maxLength={6}
+                        required
+                        disabled={verifying}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={verifying || verificationCode.length < 6}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                    >
+                      {verifying ? 'Verificando...' : 'Verificar Cuenta'}
+                    </button>
+
+                    <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
+                      <button
+                        type="button"
+                        onClick={handleResendCode}
+                        className="text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                        disabled={verifying}
+                      >
+                        <RefreshCcw size={14} /> Reenviar código
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowVerificationModal(false)}
+                        className="text-gray-500 hover:text-gray-700 transition-colors"
+                        disabled={verifying}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -72,6 +72,7 @@ export interface SiteSettings {
   moderateComments: boolean;
   googleAnalyticsId: string;
   enableNewsletter: boolean;
+  highlightedArticleId?: string;
 }
 
 export interface ReaderDistribution {
@@ -201,7 +202,8 @@ const defaultSiteSettings: SiteSettings = {
   enableComments: true,
   moderateComments: true,
   googleAnalyticsId: '',
-  enableNewsletter: true
+  enableNewsletter: true,
+  highlightedArticleId: undefined,
 };
 
 const defaultAnalytics: Analytics = {
@@ -551,6 +553,7 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       enableComments: newSettings.enableComments,
       moderateComments: newSettings.moderateComments,
       enableNewsletter: newSettings.enableNewsletter,
+      highlightedArticleId: newSettings.highlightedArticleId as Id<"articles"> | undefined,
     });
   };
 

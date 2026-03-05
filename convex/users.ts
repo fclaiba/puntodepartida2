@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { compareSync, hashSync } from "bcryptjs";
 
 // Login function (Simple password check for now)
@@ -29,7 +30,12 @@ export const login = mutation({
         }
 
         if (!isValid) {
-            return null;
+            return null; // Contraseña incorrecta
+        }
+
+        // --- NEW: Check if verified ---
+        if (user.isVerified === false) {
+            throw new Error("NOT_VERIFIED");
         }
 
         if (!isHashed) {
@@ -66,6 +72,9 @@ export const createUser = mutation({
         // Use sync hash
         const hashedPassword = hashSync(args.password, 10);
 
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
+
         const userId = await ctx.db.insert("users", {
             email: normalizedEmail,
             name: trimmedName,
@@ -73,10 +82,84 @@ export const createUser = mutation({
             password: hashedPassword,
             createdAt: new Date().toISOString(),
             lastLogin: new Date().toISOString(),
+            isVerified: false,
+            verificationCode: code,
+            verificationCodeExpiresAt: expiresAt,
+        });
+
+        // Enviar email
+        await ctx.scheduler.runAfter(0, internal.email.sendVerificationEmail, {
+            email: normalizedEmail,
+            code: code,
         });
 
         return userId;
     },
+});
+
+// Verificación de email
+export const verifyEmailCode = mutation({
+    args: { email: v.string(), code: v.string() },
+    handler: async (ctx, args) => {
+        const normalizedEmail = args.email.trim().toLowerCase();
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+            .first();
+
+        if (!user) throw new Error("Usuario no encontrado");
+
+        if (user.isVerified) return true; // Ya está verificado
+
+        if (user.verificationCode !== args.code) {
+            throw new Error("Código incorrecto");
+        }
+
+        if (user.verificationCodeExpiresAt && Date.now() > user.verificationCodeExpiresAt) {
+            throw new Error("El código ha expirado");
+        }
+
+        // Éxito: limpiar el código y marcar como verificado
+        await ctx.db.patch(user._id, {
+            isVerified: true,
+            verificationCode: undefined,
+            verificationCodeExpiresAt: undefined,
+        });
+
+        return true;
+    },
+});
+
+// Resend Verification Code
+export const resendVerificationCode = mutation({
+    args: { email: v.string() },
+    handler: async (ctx, args) => {
+        const normalizedEmail = args.email.trim().toLowerCase();
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+            .first();
+
+        if (!user) throw new Error("Usuario no encontrado");
+        if (user.isVerified) throw new Error("El usuario ya está verificado");
+
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const newExpiresAt = Date.now() + 15 * 60 * 1000;
+
+        await ctx.db.patch(user._id, {
+            verificationCode: newCode,
+            verificationCodeExpiresAt: newExpiresAt,
+        });
+
+        await ctx.scheduler.runAfter(0, internal.email.sendVerificationEmail, {
+            email: normalizedEmail,
+            code: newCode,
+        });
+
+        return true;
+    }
 });
 
 // Get all users (Admin)

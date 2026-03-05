@@ -24,6 +24,7 @@ export const update = mutation({
         enableComments: v.boolean(),
         moderateComments: v.boolean(),
         enableNewsletter: v.boolean(),
+        highlightedArticleId: v.optional(v.id("articles")),
     },
     handler: async (ctx, args) => {
         const existing = await ctx.db.query("settings").first();
