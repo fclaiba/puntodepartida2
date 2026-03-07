@@ -211,7 +211,7 @@ export const AdsManagerContent: React.FC = () => {
                                 </div>
                                 {previewUrl && (
                                     <div className="w-1/3 min-w-[200px] border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-2">
-                                        <img src={previewUrl} alt="Preview" className="max-h-32 object-contain" />
+                                        <img src={previewUrl} alt="Preview" loading="lazy" decoding="async" className="max-h-32 object-contain" />
                                     </div>
                                 )}
                             </div>
@@ -265,7 +265,7 @@ export const AdsManagerContent: React.FC = () => {
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-10 bg-gray-100 rounded overflow-hidden flex items-center justify-center shrink-0 border border-gray-200">
                                             {ad.imageUrl ? (
-                                                <img src={ad.imageUrl} alt="" className="w-full h-full object-cover" />
+                                                <img src={ad.imageUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                             ) : (
                                                 <ImageIcon size={16} className="text-gray-400" />
                                             )}

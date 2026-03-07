@@ -1018,23 +1018,25 @@ const ArticleEditorContent: React.FC = () => {
                     </div>
 
                     <div className="pt-4 border-t border-gray-200">
-                      <label className="flex items-center gap-3 cursor-pointer mb-4">
-                        <input
-                          type="checkbox"
-                          name="featured"
-                          checked={formData.featured}
-                          onChange={handleChange}
-                          className="w-5 h-5 rounded border-gray-300 text-[var(--color-brand-primary)] focus:ring-[var(--color-brand-primary)]"
-                        />
-                        <div>
-                          <div style={{ fontSize: '14px', fontWeight: 600 }}>
-                            Artículo destacado
+                      {currentUser?.role === 'admin' && (
+                        <label className="flex items-center gap-3 cursor-pointer mb-4">
+                          <input
+                            type="checkbox"
+                            name="featured"
+                            checked={formData.featured}
+                            onChange={handleChange}
+                            className="w-5 h-5 rounded border-gray-300 text-[var(--color-brand-primary)] focus:ring-[var(--color-brand-primary)]"
+                          />
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                              Artículo destacado
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              Aparecerá fijado en la página principal
+                            </div>
                           </div>
-                          <div className="text-gray-500 text-xs">
-                            Aparecerá fijado en la página principal
-                          </div>
-                        </div>
-                      </label>
+                        </label>
+                      )}
 
                       <label className="flex items-center gap-3 cursor-pointer mb-6">
                         <input
@@ -1058,17 +1060,38 @@ const ArticleEditorContent: React.FC = () => {
                         <label className="block mb-2" style={{ fontSize: '14px', fontWeight: 600 }}>
                           Estado de publicación
                         </label>
-                        <select
-                          name="status"
-                          value={formData.status}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 transition-all"
-                          style={{ fontSize: '14px' }}
-                        >
-                          <option value="draft">Borrador</option>
-                          <option value="published">Publicado</option>
-                          <option value="scheduled">Programado</option>
-                        </select>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, status: 'draft' }))}
+                            className={`px-3 py-2 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${formData.status === 'draft'
+                                ? 'bg-gray-100 border-gray-400 text-gray-800 font-semibold shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                              }`}
+                          >
+                            <span className="text-xs uppercase tracking-wider font-bold">Borrador</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, status: 'published' }))}
+                            className={`px-3 py-2 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${formData.status === 'published'
+                                ? 'bg-green-50 border-green-500 text-green-700 font-semibold shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                              }`}
+                          >
+                            <span className="text-xs uppercase tracking-wider font-bold">Publicado</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, status: 'scheduled' }))}
+                            className={`px-3 py-2 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${formData.status === 'scheduled'
+                                ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                              }`}
+                          >
+                            <span className="text-xs uppercase tracking-wider font-bold">Programado</span>
+                          </button>
+                        </div>
                       </div>
 
                       {formData.status === 'scheduled' && (

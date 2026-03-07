@@ -134,7 +134,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/panel' },
     { icon: FileText, label: 'Noticias', path: '/panel/articles' },
     { icon: BookOpen, label: 'Extrategia', path: '/panel/extrategia' },
-    { icon: MessageCircle, label: 'Comentarios', path: '/panel/comments', badge: pendingComments > 0 ? pendingComments : undefined },
+    { icon: MessageCircle, label: 'Comentarios', path: '/panel/comments', badge: pendingComments > 0 ? pendingComments : undefined, adminOnly: true },
     { icon: BarChart3, label: 'Analytics', path: '/panel/analytics' },
     { icon: Activity, label: 'Actividad', path: '/panel/activity' },
     { icon: Megaphone, label: 'Publicidad', path: '/panel/ads', adminOnly: true },

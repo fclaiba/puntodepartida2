@@ -50,8 +50,29 @@ export const HomePage: React.FC = () => {
     heroNews = newsArticles[0];
   }
 
-  // Las noticias de Featured no incluyen al Hero actual para no duplicarlo ahí mismo arriba
-  const featuredNews = newsArticles.filter(n => n.featured && n._id !== heroNews?._id).slice(0, 2);
+  // Determine secondary featured articles (2do and 3ero)
+  let featuredNews: typeof newsArticles = [];
+
+  const sec1 = newsArticles.find(n => n._id === settingsRaw?.secondaryHighlightedArticleId1);
+  const sec2 = newsArticles.find(n => n._id === settingsRaw?.secondaryHighlightedArticleId2);
+
+  if (sec1) featuredNews.push(sec1);
+  if (sec2) featuredNews.push(sec2);
+
+  // Fallback to older featured logic if not manually set to ensure 2 cards
+  if (featuredNews.length < 2) {
+    const fallbackFeatured = newsArticles.filter(n =>
+      n.featured &&
+      n._id !== heroNews?._id &&
+      n._id !== sec1?._id &&
+      n._id !== sec2?._id
+    );
+
+    for (const fb of fallbackFeatured) {
+      if (featuredNews.length >= 2) break;
+      featuredNews.push(fb);
+    }
+  }
 
   // Las secciones muestran las últimas noticias sin excluir al Hero
   const politicaNews = newsArticles.filter(n => n.section === 'politica').slice(0, 3);

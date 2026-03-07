@@ -352,6 +352,8 @@ export const NewsDetailPage: React.FC = () => {
                             <img
                               src={block.content}
                               alt={block.metadata?.caption || 'Imagen del artículo'}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full rounded-lg shadow-sm"
                               onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />

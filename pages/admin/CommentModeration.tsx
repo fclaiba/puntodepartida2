@@ -331,7 +331,7 @@ const CommentModerationContent: React.FC = () => {
 
 export const CommentModeration: React.FC = () => {
   return (
-    <ProtectedRoute requiredRole="editor">
+    <ProtectedRoute requiredRole="admin">
       <CommentModerationContent />
     </ProtectedRoute>
   );

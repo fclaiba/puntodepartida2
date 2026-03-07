@@ -75,6 +75,8 @@ export interface SiteSettings {
   googleAnalyticsId: string;
   enableNewsletter: boolean;
   highlightedArticleId?: string;
+  secondaryHighlightedArticleId1?: string;
+  secondaryHighlightedArticleId2?: string;
 }
 
 export interface ReaderDistribution {
@@ -208,6 +210,8 @@ const defaultSiteSettings: SiteSettings = {
   googleAnalyticsId: '',
   enableNewsletter: true,
   highlightedArticleId: undefined,
+  secondaryHighlightedArticleId1: undefined,
+  secondaryHighlightedArticleId2: undefined,
 };
 
 const defaultAnalytics: Analytics = {
@@ -560,6 +564,8 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       moderateComments: newSettings.moderateComments,
       enableNewsletter: newSettings.enableNewsletter,
       highlightedArticleId: newSettings.highlightedArticleId as Id<"articles"> | undefined,
+      secondaryHighlightedArticleId1: newSettings.secondaryHighlightedArticleId1 as Id<"articles"> | undefined,
+      secondaryHighlightedArticleId2: newSettings.secondaryHighlightedArticleId2 as Id<"articles"> | undefined,
     });
   };
 

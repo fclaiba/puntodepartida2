@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, Edit, Trash2, Eye, CheckCircle, XCircle, Star } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, Eye, CheckCircle, XCircle, Star, Clock } from 'lucide-react';
 import { NewsSections } from '../../data/newsData';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ const ArticleListContent: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState<string>('all');
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: Id<"articles"> | null; title: string }>({ isOpen: false, id: null, title: '' });
 
   const filteredArticles = articles.filter(article => {
@@ -45,10 +46,18 @@ const ArticleListContent: React.FC = () => {
     }
   };
 
-  const setHighlightedArticle = async (id: string, title: string) => {
+  const setHighlightedArticle = async (id: string, level: 1 | 2 | 3, title: string) => {
     try {
-      await updateSiteSettings({ highlightedArticleId: id });
-      toast.success(`"${title}" es ahora el artículo principal destacado`);
+      if (level === 1) {
+        await updateSiteSettings({ highlightedArticleId: id });
+        toast.success(`"${title}" es ahora el artículo principal (Hero)`);
+      } else if (level === 2) {
+        await updateSiteSettings({ secondaryHighlightedArticleId1: id });
+        toast.success(`"${title}" es ahora el 2do artículo destacado`);
+      } else if (level === 3) {
+        await updateSiteSettings({ secondaryHighlightedArticleId2: id });
+        toast.success(`"${title}" es ahora el 3er artículo destacado`);
+      }
     } catch (error) {
       toast.error('Error al destacar el artículo');
       console.error(error);
@@ -202,6 +211,8 @@ const ArticleListContent: React.FC = () => {
                           <img
                             src={article.imageUrl}
                             alt={article.title}
+                            loading="lazy"
+                            decoding="async"
                             className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                           />
                           <div className="min-w-0">
@@ -211,8 +222,21 @@ const ArticleListContent: React.FC = () => {
                             >
                               {article.title}
                               {siteSettings.highlightedArticleId === article._id && (
-                                <span title="Artículo Principal Destacado">
-                                  <Star size={16} className="text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                <span title="Artículo Principal Destacado (Hero)" className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 flex-shrink-0">
+                                  <Star size={10} className="fill-yellow-700" />
+                                  Hero
+                                </span>
+                              )}
+                              {siteSettings.secondaryHighlightedArticleId1 === article._id && (
+                                <span title="Artículo Destacado Secundario (2do)" className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 flex-shrink-0">
+                                  <Star size={10} className="fill-orange-700" />
+                                  2do
+                                </span>
+                              )}
+                              {siteSettings.secondaryHighlightedArticleId2 === article._id && (
+                                <span title="Artículo Destacado Terciario (3ero)" className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 flex-shrink-0">
+                                  <Star size={10} className="fill-orange-700" />
+                                  3ero
                                 </span>
                               )}
                             </h3>
@@ -249,13 +273,18 @@ const ArticleListContent: React.FC = () => {
                         </p>
                       </td>
                       <td className="px-6 py-4 hidden sm:table-cell">
-                        {article.featured ? (
+                        {article.status === 'published' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs" style={{ backgroundColor: '#dcfce7', color: '#16a34a', fontWeight: 600 }}>
                             <CheckCircle size={14} />
                             Publicado
                           </span>
+                        ) : article.status === 'scheduled' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs" style={{ backgroundColor: '#dbeafe', color: '#2563eb', fontWeight: 600 }}>
+                            <Clock size={14} />
+                            Programado
+                          </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs" style={{ backgroundColor: '#fee2e2', color: '#dc2626', fontWeight: 600 }}>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs" style={{ backgroundColor: '#f3f4f6', color: '#4b5563', fontWeight: 600 }}>
                             <XCircle size={14} />
                             Borrador
                           </span>
@@ -274,16 +303,47 @@ const ArticleListContent: React.FC = () => {
                           {canEdit && (
                             <>
                               {currentUser?.role === 'admin' && (
-                                <button
-                                  onClick={() => setHighlightedArticle(article._id, article.title)}
-                                  className={`p-2 rounded-lg transition-colors ${siteSettings.highlightedArticleId === article._id
-                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                                    : 'hover:bg-gray-200 text-gray-500 hover:text-yellow-600'
-                                    }`}
-                                  title={siteSettings.highlightedArticleId === article._id ? "Artículo Principal" : "Fijar como Principal"}
-                                >
-                                  <Star size={18} className={siteSettings.highlightedArticleId === article._id ? "fill-yellow-600" : ""} />
-                                </button>
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setActiveDropdown(activeDropdown === article._id ? null : article._id)}
+                                    className={`p-2 rounded-lg transition-colors ${siteSettings.highlightedArticleId === article._id || siteSettings.secondaryHighlightedArticleId1 === article._id || siteSettings.secondaryHighlightedArticleId2 === article._id
+                                      ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                                      : 'hover:bg-gray-200 text-gray-500 hover:text-yellow-600'
+                                      }`}
+                                    title="Destacar Artículo"
+                                  >
+                                    <Star size={18} className={
+                                      siteSettings.highlightedArticleId === article._id || siteSettings.secondaryHighlightedArticleId1 === article._id || siteSettings.secondaryHighlightedArticleId2 === article._id
+                                        ? "fill-current" : ""
+                                    } />
+                                  </button>
+
+                                  {activeDropdown === article._id && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1">
+                                      <button
+                                        onClick={() => { setHighlightedArticle(article._id, 1, article.title); setActiveDropdown(null); }}
+                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <div className={`w-2 h-2 rounded-full ${siteSettings.highlightedArticleId === article._id ? 'bg-yellow-500' : 'bg-gray-300'}`} />
+                                        Principal (Hero)
+                                      </button>
+                                      <button
+                                        onClick={() => { setHighlightedArticle(article._id, 2, article.title); setActiveDropdown(null); }}
+                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <div className={`w-2 h-2 rounded-full ${siteSettings.secondaryHighlightedArticleId1 === article._id ? 'bg-orange-500' : 'bg-gray-300'}`} />
+                                        Secundario (2do)
+                                      </button>
+                                      <button
+                                        onClick={() => { setHighlightedArticle(article._id, 3, article.title); setActiveDropdown(null); }}
+                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <div className={`w-2 h-2 rounded-full ${siteSettings.secondaryHighlightedArticleId2 === article._id ? 'bg-orange-500' : 'bg-gray-300'}`} />
+                                        Terciario (3ero)
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               <Link
                                 to={`/panel/articles/edit/${article._id}`}

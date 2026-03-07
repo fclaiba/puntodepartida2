@@ -186,6 +186,8 @@ export const ExtrateguiaPage: React.FC = () => {
                       <img
                         src={volume.coverImage || "https://placehold.co/600x800?text=Portada"}
                         alt={volume.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                       <div

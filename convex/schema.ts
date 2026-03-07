@@ -156,6 +156,8 @@ export default defineSchema({
         googleAnalyticsId: v.optional(v.string()),
         // Highlighted Single Article (Hero)
         highlightedArticleId: v.optional(v.id("articles")),
+        secondaryHighlightedArticleId1: v.optional(v.id("articles")),
+        secondaryHighlightedArticleId2: v.optional(v.id("articles")),
     }),
 
     academic_volumes: defineTable({

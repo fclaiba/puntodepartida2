@@ -108,7 +108,7 @@ export const UserProfilePage: React.FC = () => {
                         <div className="relative group">
                             <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center shrink-0">
                                 {currentUser.avatarUrl ? (
-                                    <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-full h-full object-cover" />
+                                    <img src={currentUser.avatarUrl} alt={currentUser.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                 ) : (
                                     <User size={48} className="text-gray-400" />
                                 )}
