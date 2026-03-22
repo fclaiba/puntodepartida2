@@ -4,10 +4,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Punto de Partida | Diario Digital</title>
 <meta name="description" content="Un diario sin filtro. 👉🏽 Acá la verdad no se compra, se cuenta." />
+<link rel="canonical" href="https://puntodepartida.com/" />
 <link rel="icon" type="image/svg+xml" href="/logo-p.svg" />
 
 <body>
   <div id="root"></div>
+  <script>
+    (function redirectWwwToApex() {
+      if (window.location.hostname.startsWith("www.")) {
+        const apexHost = window.location.hostname.replace(/^www\./, "");
+        const target = `${window.location.protocol}//${apexHost}${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.location.replace(target);
+      }
+    })();
+  </script>
   <script type="module" src="/main.tsx"></script>
 </body>
 
